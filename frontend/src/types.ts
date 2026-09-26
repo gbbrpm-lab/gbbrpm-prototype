@@ -66,6 +66,33 @@ export interface EvaluationResponse {
   metadata: Record<string, number>;
 }
 
+export interface ScenarioSnapshot {
+  label: string;
+  dataset: DatasetPayload;
+  evaluation: EvaluationResponse;
+}
+
+export interface ComparisonRow {
+  id: string;
+  baselineRisk: number;
+  candidateRisk: number;
+  delta: number;
+  baselineRank: number;
+  candidateRank: number;
+  rankMovement: number;
+  outlet: boolean;
+}
+
+export interface ComparisonSummary {
+  changedComponents: number;
+  componentCount: number;
+  greatestIncreaseNode: string | null;
+  greatestIncrease: number;
+  meanAbsoluteDelta: number;
+  highestCurrentRiskNode: string;
+  highestCurrentRisk: number;
+}
+
 export type Selection =
   | { type: "node"; id: string }
   | { type: "edge"; source: string; target: string }
