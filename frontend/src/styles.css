@@ -106,6 +106,10 @@ select:focus, .numeric-field input:focus { border-color: var(--blue); }
 .scenario-key { display: flex; align-items: center; gap: 5px; color: #68717a; font-size: 8px; }
 .scenario-key i { width: 13px; height: 3px; background: #9aa2aa; }
 .scenario-key i:last-of-type { margin-left: 7px; background: var(--blue); }
+.comparison-tools { display: flex; align-items: center; gap: 6px; }
+.comparison-tools button { display: flex; align-items: center; gap: 5px; padding: 6px 8px; border: 1px solid #9ca4ac; border-radius: 2px; background: #f7f8f9; color: #39424b; font-size: 8px; cursor: pointer; }
+.comparison-tools button:hover { border-color: #397fdc; color: #185fac; background: #edf5ff; }
+.comparison-tools button:disabled { opacity: .45; cursor: not-allowed; }
 .comparison-table { width: 100%; border-collapse: collapse; font: 500 9px "JetBrains Mono", monospace; }
 .comparison-table th { padding: 9px 12px; border-bottom: 1px solid #b9bec4; background: #dfe2e5; color: #59616a; text-align: left; font-size: 8px; text-transform: uppercase; letter-spacing: .04em; }
 .comparison-table td { padding: 9px 12px; border-bottom: 1px solid #d8dce0; color: #424a52; }
@@ -164,4 +168,7 @@ select:focus, .numeric-field input:focus { border-color: var(--blue); }
   .comparison-view { min-height: 540px; }
   .comparison-table-wrap { overflow-x: auto; }
   .comparison-table { min-width: 650px; }
+  .comparison-table-title { align-items: flex-start; gap: 10px; }
+  .comparison-tools { flex-wrap: wrap; justify-content: flex-end; }
+  .scenario-key { width: 100%; justify-content: flex-end; }
 }

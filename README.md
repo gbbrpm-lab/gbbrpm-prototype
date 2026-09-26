@@ -22,6 +22,8 @@ The backend uses the tagged model implementation from
 - Baseline-versus-candidate scenario comparison
 - Per-component risk deltas and ranking movement
 - Explicit stale-result warning after parameter edits
+- CSV comparison export for analysis and thesis tables
+- JSON reproducibility manifest with inputs, outputs, provenance, and model version
 - Pinned GBBRPM `v0.1.0` dependency
 
 Operational mode is intentionally inactive until an agency dataset is mapped
@@ -39,6 +41,24 @@ real infrastructure observations.
    largest modeled-risk increase, and the mean absolute change.
 5. Use **Save baseline** to promote any clean evaluated scenario as the new
    reference point for subsequent comparisons.
+6. Export the comparison as CSV or download the full JSON analysis manifest.
+
+Export is disabled while parameters have unevaluated changes. This guarantees
+that downloaded candidate inputs correspond to the included model outputs.
+
+### Exported records
+
+The CSV contains one record per node with the dataset and component IDs,
+outlet flag, baseline and current risk, risk delta, baseline and current rank,
+and rank movement. Values retain their full numeric precision.
+
+The JSON manifest uses schema version `1.0` and includes:
+
+- GBBRPM model version and evidence boundary;
+- dataset mode, source note, and evaluator provenance;
+- complete baseline dataset and evaluation;
+- complete candidate dataset and evaluation; and
+- the same comparison rows and summary displayed by the interface.
 
 The comparison reports changes in the bounded modeled risk index. It does not
 interpret those changes as probabilities or direct predictions of real-world

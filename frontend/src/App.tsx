@@ -14,11 +14,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
 import { GraphCanvas } from "./components/GraphCanvas";
 import { ScenarioComparison } from "./components/ScenarioComparison";
+import { exportAnalysisManifest, exportComparisonCsv } from "./exports";
 import type {
   DatasetMode,
   DatasetPayload,
   DatasetSummary,
   EvaluationResponse,
+  ScenarioSnapshot,
   Selection,
 } from "./types";
 
@@ -37,7 +39,7 @@ export default function App() {
   const [dataset, setDataset] = useState<DatasetPayload | null>(null);
   const [pristine, setPristine] = useState<DatasetPayload | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResponse | null>(null);
-  const [baseline, setBaseline] = useState<EvaluationResponse | null>(null);
+  const [baseline, setBaseline] = useState<ScenarioSnapshot | null>(null);
   const [selection, setSelection] = useState<Selection>(null);
   const [activeView, setActiveView] = useState<"network" | "comparison">("network");
   const [dirty, setDirty] = useState(false);
@@ -51,7 +53,13 @@ export default function App() {
     try {
       const result = await api.evaluate(payload);
       setEvaluation(result);
-      if (captureBaseline) setBaseline(structuredClone(result));
+      if (captureBaseline) {
+        setBaseline({
+          label: "Initial evaluated scenario",
+          dataset: structuredClone(payload),
+          evaluation: structuredClone(result),
+        });
+      }
       setDirty(false);
       setStatus(`Evaluation complete · ${result.risks.length} ranked nodes`);
       return result;
@@ -177,9 +185,25 @@ export default function App() {
   }
 
   function saveBaseline() {
-    if (!evaluation || dirty) return;
-    setBaseline(structuredClone(evaluation));
+    if (!dataset || !evaluation || dirty) return;
+    setBaseline({
+      label: "Saved evaluated scenario",
+      dataset: structuredClone(dataset),
+      evaluation: structuredClone(evaluation),
+    });
     setStatus("Current evaluated scenario saved as baseline");
+  }
+
+  function downloadComparisonCsv() {
+    if (!baseline || !dataset || !evaluation || dirty) return;
+    exportComparisonCsv(baseline, dataset, evaluation);
+    setStatus("Scenario comparison exported as CSV");
+  }
+
+  function downloadAnalysisManifest() {
+    if (!baseline || !dataset || !evaluation || dirty) return;
+    exportAnalysisManifest(baseline, dataset, evaluation);
+    setStatus("Reproducibility manifest exported as JSON");
   }
 
   return (
@@ -331,9 +355,11 @@ export default function App() {
             </div>
           ) : (
             <ScenarioComparison
-              baseline={baseline}
+              baseline={baseline?.evaluation ?? null}
               candidate={evaluation}
               dirty={dirty}
+              onExportCsv={downloadComparisonCsv}
+              onExportManifest={downloadAnalysisManifest}
               onSelectNode={(id) => {
                 setSelection({ type: "node", id });
                 setActiveView("network");

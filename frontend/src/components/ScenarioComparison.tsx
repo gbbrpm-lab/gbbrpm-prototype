@@ -1,5 +1,13 @@
-import { ArrowDown, ArrowUp, GitCompareArrows, Minus } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Download,
+  FileJson,
+  GitCompareArrows,
+  Minus,
+} from "lucide-react";
 
+import { buildComparisonRows, summarizeComparison } from "../scenario";
 import type { EvaluationResponse } from "../types";
 
 interface Props {
@@ -7,17 +15,8 @@ interface Props {
   candidate: EvaluationResponse | null;
   dirty: boolean;
   onSelectNode: (id: string) => void;
-}
-
-interface ComparisonRow {
-  id: string;
-  baselineRisk: number;
-  candidateRisk: number;
-  delta: number;
-  baselineRank: number;
-  candidateRank: number;
-  rankMovement: number;
-  outlet: boolean;
+  onExportCsv: () => void;
+  onExportManifest: () => void;
 }
 
 const fmt = (value: number) => value.toFixed(4);
@@ -28,7 +27,14 @@ function movementLabel(value: number) {
   return <><Minus size={12} />0</>;
 }
 
-export function ScenarioComparison({ baseline, candidate, dirty, onSelectNode }: Props) {
+export function ScenarioComparison({
+  baseline,
+  candidate,
+  dirty,
+  onSelectNode,
+  onExportCsv,
+  onExportManifest,
+}: Props) {
   if (!baseline || !candidate) {
     return (
       <div className="comparison-empty">
@@ -39,28 +45,8 @@ export function ScenarioComparison({ baseline, candidate, dirty, onSelectNode }:
     );
   }
 
-  const baselineById = new Map(baseline.risks.map((item) => [item.id, item]));
-  const rows: ComparisonRow[] = candidate.risks.map((item) => {
-    const prior = baselineById.get(item.id);
-    const baselineRisk = prior?.risk ?? 0;
-    const baselineRank = prior?.rank ?? item.rank;
-    return {
-      id: item.id,
-      baselineRisk,
-      candidateRisk: item.risk,
-      delta: item.risk - baselineRisk,
-      baselineRank,
-      candidateRank: item.rank,
-      rankMovement: baselineRank - item.rank,
-      outlet: item.outlet,
-    };
-  }).sort((a, b) => b.delta - a.delta || a.candidateRank - b.candidateRank);
-
-  const changed = rows.filter((row) => Math.abs(row.delta) > 1e-12);
-  const greatestIncrease = rows.find((row) => row.delta > 1e-12);
-  const meanAbsoluteDelta = rows.length
-    ? rows.reduce((sum, row) => sum + Math.abs(row.delta), 0) / rows.length
-    : 0;
+  const rows = buildComparisonRows(baseline, candidate);
+  const summary = summarizeComparison(rows, candidate);
 
   return (
     <div className="comparison-view">
@@ -73,23 +59,23 @@ export function ScenarioComparison({ baseline, candidate, dirty, onSelectNode }:
       <div className="comparison-summary">
         <div>
           <span>Largest risk increase</span>
-          <strong>{greatestIncrease ? greatestIncrease.id : "None"}</strong>
-          <output>{greatestIncrease ? `+${fmt(greatestIncrease.delta)}` : fmt(0)}</output>
+          <strong>{summary.greatestIncreaseNode ?? "None"}</strong>
+          <output>{summary.greatestIncrease > 0 ? `+${fmt(summary.greatestIncrease)}` : fmt(0)}</output>
         </div>
         <div>
           <span>Changed components</span>
-          <strong>{changed.length}</strong>
-          <output>of {rows.length} nodes</output>
+          <strong>{summary.changedComponents}</strong>
+          <output>of {summary.componentCount} nodes</output>
         </div>
         <div>
           <span>Mean absolute Δ</span>
-          <strong>{fmt(meanAbsoluteDelta)}</strong>
+          <strong>{fmt(summary.meanAbsoluteDelta)}</strong>
           <output>risk-index units</output>
         </div>
         <div>
           <span>Highest current risk</span>
-          <strong>{candidate.summary.highest_risk_node}</strong>
-          <output>{fmt(candidate.summary.highest_risk)}</output>
+          <strong>{summary.highestCurrentRiskNode}</strong>
+          <output>{fmt(summary.highestCurrentRisk)}</output>
         </div>
       </div>
 
@@ -99,7 +85,15 @@ export function ScenarioComparison({ baseline, candidate, dirty, onSelectNode }:
             <p className="eyebrow">Component deltas</p>
             <span>Sorted by greatest modeled-risk increase</span>
           </div>
-          <div className="scenario-key"><i /> Baseline <i /> Current</div>
+          <div className="comparison-tools">
+            <div className="scenario-key"><i /> Baseline <i /> Current</div>
+            <button disabled={dirty} onClick={onExportCsv} title={dirty ? "Run the model before exporting" : "Export comparison table as CSV"}>
+              <Download size={13} /> CSV
+            </button>
+            <button disabled={dirty} onClick={onExportManifest} title={dirty ? "Run the model before exporting" : "Export complete reproducibility manifest"}>
+              <FileJson size={13} /> Manifest
+            </button>
+          </div>
         </div>
         <table className="comparison-table">
           <thead>
