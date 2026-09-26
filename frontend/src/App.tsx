@@ -1,7 +1,9 @@
 import {
   Activity,
+  BookmarkCheck,
   Database,
   FileUp,
+  GitCompareArrows,
   Network,
   Play,
   RotateCcw,
@@ -11,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "./api";
 import { GraphCanvas } from "./components/GraphCanvas";
+import { ScenarioComparison } from "./components/ScenarioComparison";
 import type {
   DatasetMode,
   DatasetPayload,
@@ -34,21 +37,28 @@ export default function App() {
   const [dataset, setDataset] = useState<DatasetPayload | null>(null);
   const [pristine, setPristine] = useState<DatasetPayload | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResponse | null>(null);
+  const [baseline, setBaseline] = useState<EvaluationResponse | null>(null);
   const [selection, setSelection] = useState<Selection>(null);
+  const [activeView, setActiveView] = useState<"network" | "comparison">("network");
+  const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState("Loading synthetic fixtures…");
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const runEvaluation = useCallback(async (payload: DatasetPayload) => {
+  const runEvaluation = useCallback(async (payload: DatasetPayload, captureBaseline = false) => {
     setBusy(true);
     setStatus("Evaluating directed network…");
     try {
       const result = await api.evaluate(payload);
       setEvaluation(result);
+      if (captureBaseline) setBaseline(structuredClone(result));
+      setDirty(false);
       setStatus(`Evaluation complete · ${result.risks.length} ranked nodes`);
+      return result;
     } catch (error) {
       setEvaluation(null);
       setStatus(error instanceof Error ? error.message : "Evaluation failed");
+      return null;
     } finally {
       setBusy(false);
     }
@@ -63,12 +73,16 @@ export default function App() {
   useEffect(() => {
     if (mode !== "synthetic") return;
     setBusy(true);
+    setEvaluation(null);
+    setBaseline(null);
+    setDirty(false);
     api.getDataset(selectedId)
       .then((payload) => {
         setDataset(payload);
         setPristine(structuredClone(payload));
         setSelection(null);
-        return runEvaluation(payload);
+        setActiveView("network");
+        return runEvaluation(payload, true);
       })
       .catch((error) => setStatus(error.message))
       .finally(() => setBusy(false));
@@ -94,7 +108,10 @@ export default function App() {
   function selectMode(nextMode: DatasetMode) {
     setMode(nextMode);
     setEvaluation(null);
+    setBaseline(null);
     setSelection(null);
+    setDirty(false);
+    setActiveView("network");
     if (nextMode === "operational") {
       setDataset(null);
       setStatus("No operational dataset configured yet");
@@ -113,6 +130,8 @@ export default function App() {
         node.id === selectedNode.id ? { ...node, B: value } : node,
       ),
     });
+    setDirty(true);
+    setStatus("Scenario modified · run the model to update results");
   }
 
   function updateEdge(field: "L" | "C" | "tau", value: number) {
@@ -125,6 +144,8 @@ export default function App() {
           : edge,
       ),
     });
+    setDirty(true);
+    setStatus("Scenario modified · run the model to update results");
   }
 
   async function importDataset(file: File) {
@@ -139,7 +160,8 @@ export default function App() {
       setDataset(payload);
       setPristine(structuredClone(payload));
       setStatus(`Validated ${file.name}`);
-      await runEvaluation(payload);
+      setActiveView("network");
+      await runEvaluation(payload, true);
     } catch (error) {
       setDataset(null);
       setStatus(error instanceof Error ? error.message : "Import failed");
@@ -152,6 +174,12 @@ export default function App() {
     setDataset(reset);
     setSelection(null);
     void runEvaluation(reset);
+  }
+
+  function saveBaseline() {
+    if (!evaluation || dirty) return;
+    setBaseline(structuredClone(evaluation));
+    setStatus("Current evaluated scenario saved as baseline");
   }
 
   return (
@@ -245,6 +273,14 @@ export default function App() {
             </div>
             {dataset && (
               <div className="stage-actions">
+                <button
+                  className="baseline-button"
+                  disabled={busy || dirty || !evaluation}
+                  title={dirty ? "Run the modified scenario before saving it" : "Save current evaluation as baseline"}
+                  onClick={saveBaseline}
+                >
+                  <BookmarkCheck size={15} /> Save baseline
+                </button>
                 <button className="icon-button" title="Reset dataset" onClick={resetDataset}>
                   <RotateCcw size={17} />
                 </button>
@@ -259,19 +295,51 @@ export default function App() {
             )}
           </div>
 
-          <div className="graph-frame">
-            {dataset ? (
-              <GraphCanvas dataset={dataset} evaluation={evaluation} onSelect={setSelection} />
-            ) : (
-              <div className="graph-empty"><Network size={35} /><span>No graph loaded</span></div>
-            )}
-            <div className="legend">
-              <span><i className="low" />Low</span>
-              <span><i className="medium" />Moderate</span>
-              <span><i className="high" />High</span>
-              <span><i className="critical" />Very high</span>
-            </div>
+          <div className="view-tabs" role="tablist" aria-label="Analysis view">
+            <button
+              className={activeView === "network" ? "active" : ""}
+              role="tab"
+              aria-selected={activeView === "network"}
+              onClick={() => setActiveView("network")}
+            >
+              <Network size={14} /> Network view
+            </button>
+            <button
+              className={activeView === "comparison" ? "active" : ""}
+              role="tab"
+              aria-selected={activeView === "comparison"}
+              onClick={() => setActiveView("comparison")}
+            >
+              <GitCompareArrows size={14} /> Scenario comparison
+            </button>
+            <span>{baseline ? "Baseline ready" : "No baseline"}</span>
           </div>
+
+          {activeView === "network" ? (
+            <div className="graph-frame">
+              {dataset ? (
+                <GraphCanvas dataset={dataset} evaluation={evaluation} onSelect={setSelection} />
+              ) : (
+                <div className="graph-empty"><Network size={35} /><span>No graph loaded</span></div>
+              )}
+              <div className="legend">
+                <span><i className="low" />Low</span>
+                <span><i className="medium" />Moderate</span>
+                <span><i className="high" />High</span>
+                <span><i className="critical" />Very high</span>
+              </div>
+            </div>
+          ) : (
+            <ScenarioComparison
+              baseline={baseline}
+              candidate={evaluation}
+              dirty={dirty}
+              onSelectNode={(id) => {
+                setSelection({ type: "node", id });
+                setActiveView("network");
+              }}
+            />
+          )}
           <div className="statusbar"><Activity size={14} /> {status}</div>
         </section>
 
@@ -286,8 +354,8 @@ export default function App() {
                 value={selectedNode.B}
                 onChange={(event) => updateNodeB(Number(event.target.value))}
               />
-              <div className="metric-card">
-                <span>Propagated risk</span>
+              <div className={`metric-card ${dirty ? "stale" : ""}`}>
+                <span>{dirty ? "Propagated risk · last run" : "Propagated risk"}</span>
                 <strong>{fmt(riskMap.get(selectedNode.id) ?? selectedNode.B)}</strong>
               </div>
               {selectedNode.outlet && <div className="outlet-badge">Declared outlet</div>}
@@ -318,7 +386,7 @@ export default function App() {
           )}
 
           <div className="ranking-header">
-            <div><p className="eyebrow">Risk ranking</p><span>Current evaluation</span></div>
+            <div><p className="eyebrow">Risk ranking</p><span>{dirty ? "Last evaluation · rerun required" : "Current evaluation"}</span></div>
             <strong>{evaluation?.risks.length ?? 0}</strong>
           </div>
           <div className="ranking-list">
