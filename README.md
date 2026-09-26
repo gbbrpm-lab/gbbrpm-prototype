@@ -19,11 +19,30 @@ The backend uses the tagged model implementation from
 - Edge `L`, `C`, and transmission `tau` editing
 - Live GBBRPM evaluation and propagated-risk coloring
 - Ranked component table and outlet-risk summary
+- Baseline-versus-candidate scenario comparison
+- Per-component risk deltas and ranking movement
+- Explicit stale-result warning after parameter edits
 - Pinned GBBRPM `v0.1.0` dependency
 
 Operational mode is intentionally inactive until an agency dataset is mapped
 and documented. This prevents demonstration fixtures from being mistaken for
 real infrastructure observations.
+
+## Scenario comparison workflow
+
+1. Load a synthetic or imported network. Its first successful evaluation is
+   retained automatically as the baseline.
+2. Select a node or edge and modify `B`, `L`, `C`, or `tau`.
+3. Run the model to evaluate the candidate scenario. Until then, the interface
+   marks the displayed evaluation as stale.
+4. Open **Scenario comparison** to inspect risk deltas, ranking movement, the
+   largest modeled-risk increase, and the mean absolute change.
+5. Use **Save baseline** to promote any clean evaluated scenario as the new
+   reference point for subsequent comparisons.
+
+The comparison reports changes in the bounded modeled risk index. It does not
+interpret those changes as probabilities or direct predictions of real-world
+failure or flooding.
 
 ## Architecture
 
@@ -155,4 +174,3 @@ Synthetic fixtures demonstrate controlled structural behavior. Future
 operational records require documented attribute mapping, provenance, data
 quality review, and comparison with observed conditions before they can support
 application-level conclusions.
-
