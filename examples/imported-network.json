@@ -1,0 +1,16 @@
+{
+  "id": "import-example",
+  "name": "Imported example",
+  "mode": "imported",
+  "description": "Minimal external-susceptibility example",
+  "source_note": "Demonstration file; not operational data",
+  "nodes": [
+    { "id": "A", "B": 0.8, "outlet": false },
+    { "id": "B", "B": 0.0, "outlet": false },
+    { "id": "C", "B": 0.0, "outlet": true }
+  ],
+  "edges": [
+    { "source": "A", "target": "B", "S": 0.5, "tau": 1.0 },
+    { "source": "B", "target": "C", "S": 0.7, "tau": 1.0 }
+  ]
+}

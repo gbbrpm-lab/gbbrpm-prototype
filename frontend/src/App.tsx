@@ -1,0 +1,338 @@
+import {
+  Activity,
+  Database,
+  FileUp,
+  Network,
+  Play,
+  RotateCcw,
+  ShieldCheck,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { api } from "./api";
+import { GraphCanvas } from "./components/GraphCanvas";
+import type {
+  DatasetMode,
+  DatasetPayload,
+  DatasetSummary,
+  EvaluationResponse,
+  Selection,
+} from "./types";
+
+const MODES: { id: DatasetMode; label: string; detail: string }[] = [
+  { id: "synthetic", label: "Synthetic", detail: "Controlled N1–N5 fixtures" },
+  { id: "operational", label: "Operational", detail: "Agency-provided network records" },
+  { id: "imported", label: "Imported", detail: "Validated JSON dataset" },
+];
+
+const fmt = (value: number) => value.toFixed(4);
+
+export default function App() {
+  const [mode, setMode] = useState<DatasetMode>("synthetic");
+  const [summaries, setSummaries] = useState<DatasetSummary[]>([]);
+  const [selectedId, setSelectedId] = useState("N1");
+  const [dataset, setDataset] = useState<DatasetPayload | null>(null);
+  const [pristine, setPristine] = useState<DatasetPayload | null>(null);
+  const [evaluation, setEvaluation] = useState<EvaluationResponse | null>(null);
+  const [selection, setSelection] = useState<Selection>(null);
+  const [status, setStatus] = useState("Loading synthetic fixtures…");
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const runEvaluation = useCallback(async (payload: DatasetPayload) => {
+    setBusy(true);
+    setStatus("Evaluating directed network…");
+    try {
+      const result = await api.evaluate(payload);
+      setEvaluation(result);
+      setStatus(`Evaluation complete · ${result.risks.length} ranked nodes`);
+    } catch (error) {
+      setEvaluation(null);
+      setStatus(error instanceof Error ? error.message : "Evaluation failed");
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    api.listDatasets()
+      .then((items) => setSummaries(items))
+      .catch((error) => setStatus(error.message));
+  }, []);
+
+  useEffect(() => {
+    if (mode !== "synthetic") return;
+    setBusy(true);
+    api.getDataset(selectedId)
+      .then((payload) => {
+        setDataset(payload);
+        setPristine(structuredClone(payload));
+        setSelection(null);
+        return runEvaluation(payload);
+      })
+      .catch((error) => setStatus(error.message))
+      .finally(() => setBusy(false));
+  }, [mode, selectedId, runEvaluation]);
+
+  const riskMap = useMemo(
+    () => new Map(evaluation?.risks.map((item) => [item.id, item.risk]) ?? []),
+    [evaluation],
+  );
+
+  const selectedNode =
+    selection?.type === "node"
+      ? dataset?.nodes.find((node) => node.id === selection.id)
+      : undefined;
+  const selectedEdge =
+    selection?.type === "edge"
+      ? dataset?.edges.find(
+          (edge) =>
+            edge.source === selection.source && edge.target === selection.target,
+        )
+      : undefined;
+
+  function selectMode(nextMode: DatasetMode) {
+    setMode(nextMode);
+    setEvaluation(null);
+    setSelection(null);
+    if (nextMode === "operational") {
+      setDataset(null);
+      setStatus("No operational dataset configured yet");
+    }
+    if (nextMode === "imported") {
+      setDataset(null);
+      setStatus("Upload a JSON dataset matching the common schema");
+    }
+  }
+
+  function updateNodeB(value: number) {
+    if (!dataset || !selectedNode) return;
+    setDataset({
+      ...dataset,
+      nodes: dataset.nodes.map((node) =>
+        node.id === selectedNode.id ? { ...node, B: value } : node,
+      ),
+    });
+  }
+
+  function updateEdge(field: "L" | "C" | "tau", value: number) {
+    if (!dataset || !selectedEdge) return;
+    setDataset({
+      ...dataset,
+      edges: dataset.edges.map((edge) =>
+        edge.source === selectedEdge.source && edge.target === selectedEdge.target
+          ? { ...edge, [field]: value }
+          : edge,
+      ),
+    });
+  }
+
+  async function importDataset(file: File) {
+    try {
+      const parsed = JSON.parse(await file.text()) as DatasetPayload;
+      const payload = {
+        ...parsed,
+        mode: "imported" as const,
+        source_note: parsed.source_note || `Imported from ${file.name}`,
+      };
+      await api.validateDataset(payload);
+      setDataset(payload);
+      setPristine(structuredClone(payload));
+      setStatus(`Validated ${file.name}`);
+      await runEvaluation(payload);
+    } catch (error) {
+      setDataset(null);
+      setStatus(error instanceof Error ? error.message : "Import failed");
+    }
+  }
+
+  function resetDataset() {
+    if (!pristine) return;
+    const reset = structuredClone(pristine);
+    setDataset(reset);
+    setSelection(null);
+    void runEvaluation(reset);
+  }
+
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="brand-mark"><Network size={21} /></div>
+        <div className="brand-copy">
+          <strong>GBBRPM</strong>
+          <span>Risk propagation workspace</span>
+        </div>
+        <div className="model-chip"><ShieldCheck size={15} /> Engine v0.1.0</div>
+      </header>
+
+      <main className="workspace">
+        <aside className="left-panel panel">
+          <p className="eyebrow">Data source</p>
+          <div className="mode-list">
+            {MODES.map((item) => (
+              <button
+                className={`mode-button ${mode === item.id ? "active" : ""}`}
+                key={item.id}
+                onClick={() => selectMode(item.id)}
+              >
+                {item.id === "imported" ? <FileUp size={17} /> : <Database size={17} />}
+                <span><strong>{item.label}</strong><small>{item.detail}</small></span>
+              </button>
+            ))}
+          </div>
+
+          {mode === "synthetic" && (
+            <div className="field-block">
+              <label htmlFor="network-select">Controlled network</label>
+              <select
+                id="network-select"
+                value={selectedId}
+                onChange={(event) => setSelectedId(event.target.value)}
+              >
+                {summaries.map((item) => (
+                  <option value={item.id} key={item.id}>
+                    {item.id} · {item.description}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {mode === "imported" && (
+            <div className="upload-card">
+              <FileUp size={23} />
+              <strong>Import network JSON</strong>
+              <p>The backend validates fields, endpoints, bounds, and DAG structure.</p>
+              <button className="secondary-button" onClick={() => fileRef.current?.click()}>
+                Choose file
+              </button>
+              <input
+                ref={fileRef}
+                hidden
+                type="file"
+                accept="application/json,.json"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void importDataset(file);
+                }}
+              />
+            </div>
+          )}
+
+          {mode === "operational" && (
+            <div className="empty-card">
+              <Database size={22} />
+              <strong>Awaiting operational data</strong>
+              <p>The adapter slot is ready; no agency dataset is represented as available.</p>
+            </div>
+          )}
+
+          {dataset && (
+            <div className="dataset-facts">
+              <div><span>Nodes</span><strong>{dataset.nodes.length}</strong></div>
+              <div><span>Edges</span><strong>{dataset.edges.length}</strong></div>
+              <div><span>Mode</span><strong>{dataset.mode}</strong></div>
+            </div>
+          )}
+        </aside>
+
+        <section className="center-stage panel">
+          <div className="stage-header">
+            <div>
+              <p className="eyebrow">Directed network</p>
+              <h1>{dataset?.name ?? "No active network"}</h1>
+              <p>{dataset?.description ?? "Select or import a dataset to begin."}</p>
+            </div>
+            {dataset && (
+              <div className="stage-actions">
+                <button className="icon-button" title="Reset dataset" onClick={resetDataset}>
+                  <RotateCcw size={17} />
+                </button>
+                <button
+                  className="primary-button"
+                  disabled={busy}
+                  onClick={() => void runEvaluation(dataset)}
+                >
+                  <Play size={16} fill="currentColor" /> {busy ? "Running…" : "Run model"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="graph-frame">
+            {dataset ? (
+              <GraphCanvas dataset={dataset} evaluation={evaluation} onSelect={setSelection} />
+            ) : (
+              <div className="graph-empty"><Network size={35} /><span>No graph loaded</span></div>
+            )}
+            <div className="legend">
+              <span><i className="low" />Low</span>
+              <span><i className="medium" />Moderate</span>
+              <span><i className="high" />High</span>
+              <span><i className="critical" />Very high</span>
+            </div>
+          </div>
+          <div className="statusbar"><Activity size={14} /> {status}</div>
+        </section>
+
+        <aside className="right-panel panel">
+          <p className="eyebrow">Inspector</p>
+          {selectedNode ? (
+            <div className="inspector">
+              <div className="selection-title"><span>Node</span><strong>{selectedNode.id}</strong></div>
+              <label>Local disturbance B <output>{selectedNode.B.toFixed(2)}</output></label>
+              <input
+                type="range" min="0" max="1" step="0.05"
+                value={selectedNode.B}
+                onChange={(event) => updateNodeB(Number(event.target.value))}
+              />
+              <div className="metric-card">
+                <span>Propagated risk</span>
+                <strong>{fmt(riskMap.get(selectedNode.id) ?? selectedNode.B)}</strong>
+              </div>
+              {selectedNode.outlet && <div className="outlet-badge">Declared outlet</div>}
+            </div>
+          ) : selectedEdge ? (
+            <div className="inspector">
+              <div className="selection-title"><span>Edge</span><strong>{selectedEdge.source} → {selectedEdge.target}</strong></div>
+              {(["L", "C", "tau"] as const).map((field) => (
+                <label className="numeric-field" key={field}>
+                  <span>{field === "L" ? "Load L" : field === "C" ? "Capacity C" : "Transmission τ"}</span>
+                  <input
+                    type="number"
+                    min={field === "C" ? 0.01 : 0}
+                    max={field === "tau" ? 1 : undefined}
+                    step={field === "tau" ? 0.05 : 1}
+                    value={selectedEdge[field] ?? ""}
+                    onChange={(event) => updateEdge(field, Number(event.target.value))}
+                  />
+                </label>
+              ))}
+              <div className="metric-card">
+                <span>Derived susceptibility</span>
+                <strong>{fmt(Math.min(1, (selectedEdge.L ?? 0) / (selectedEdge.C ?? 1)))}</strong>
+              </div>
+            </div>
+          ) : (
+            <div className="inspector-empty">Select a node or edge to inspect and modify its parameters.</div>
+          )}
+
+          <div className="ranking-header">
+            <div><p className="eyebrow">Risk ranking</p><span>Current evaluation</span></div>
+            <strong>{evaluation?.risks.length ?? 0}</strong>
+          </div>
+          <div className="ranking-list">
+            {evaluation?.risks.map((item) => (
+              <button key={item.id} onClick={() => setSelection({ type: "node", id: item.id })}>
+                <span className="rank">{item.rank}</span>
+                <strong>{item.id}</strong>
+                <div className="risk-bar"><i style={{ width: `${item.risk * 100}%` }} /></div>
+                <output>{fmt(item.risk)}</output>
+              </button>
+            ))}
+          </div>
+        </aside>
+      </main>
+    </div>
+  );
+}

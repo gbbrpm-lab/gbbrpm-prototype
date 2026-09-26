@@ -1,0 +1,158 @@
+# GBBRPM Prototype
+
+Interactive research prototype for the **Graph-Based Blockage Risk Propagation
+Model (GBBRPM)**. The application provides one validated workflow for
+controlled synthetic fixtures, future operational records, and user-imported
+networks without presenting synthetic data as operational evidence.
+
+The backend uses the tagged model implementation from
+[`gbbrpm-experiments@v0.1.0`](https://github.com/gbbrpm-lab/gbbrpm-experiments/tree/v0.1.0).
+
+## Current milestone
+
+- Synthetic N1–N5 dataset selection
+- Operational-data placeholder with explicit availability status
+- JSON import using the common dataset schema
+- Node, edge, bounds, endpoint, duplicate, and DAG validation
+- Interactive directed-network visualization
+- Node disturbance `B` editing
+- Edge `L`, `C`, and transmission `tau` editing
+- Live GBBRPM evaluation and propagated-risk coloring
+- Ranked component table and outlet-risk summary
+- Pinned GBBRPM `v0.1.0` dependency
+
+Operational mode is intentionally inactive until an agency dataset is mapped
+and documented. This prevents demonstration fixtures from being mistaken for
+real infrastructure observations.
+
+## Architecture
+
+```text
+Synthetic CSV ─┐
+Operational ───┼─> Common schema ─> Validation ─> GBBRPM v0.1.0 ─> Results
+Imported JSON ─┘                                           │
+                                                          └─> React graph UI
+```
+
+```text
+gbbrpm-prototype/
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── models.py
+│   │   └── services/
+│   ├── data/
+│   ├── tests/
+│   ├── requirements.txt
+│   └── requirements-dev.txt
+├── frontend/
+│   ├── src/
+│   ├── package.json
+│   └── vite.config.ts
+├── examples/
+│   └── imported-network.json
+└── README.md
+```
+
+## Prerequisites
+
+- Python 3.11 or newer
+- Node.js 20 or newer
+- Git, because the backend installs the tagged model from GitHub
+
+## Backend setup
+
+### Windows PowerShell
+
+```powershell
+cd backend
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements-dev.txt
+uvicorn app.main:app --reload
+```
+
+### WSL / Ubuntu
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+uvicorn app.main:app --reload
+```
+
+The API runs at `http://localhost:8000`. Interactive API documentation is at
+`http://localhost:8000/docs`.
+
+Run backend tests from `backend/`:
+
+```bash
+pytest -q
+```
+
+## Frontend setup
+
+In another terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`.
+
+For a production compilation check:
+
+```bash
+npm run build
+```
+
+## Common dataset schema
+
+Every source is converted into a `DatasetPayload` before evaluation.
+
+### Nodes
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `id` | string | Unique, non-empty component identifier |
+| `B` | number | Local disturbance in `[0,1]` |
+| `outlet` | boolean | Marks an outlet or terminal component for reporting |
+| `label` | string | Optional display label |
+
+### Edges
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `source` | string | Must reference a declared node |
+| `target` | string | Must reference a declared node |
+| `L`, `C` | number | Optional primitive pair; `L >= 0`, `C > 0` |
+| `S` | number | Required only when `L/C` is not supplied; bounded in `[0,1]` |
+| `tau` | number | Optional transmission factor in `[0,1]`; defaults to `1` |
+
+The graph must be a directed acyclic graph and cannot contain duplicate node
+identifiers or duplicate directed edges. See
+[`examples/imported-network.json`](examples/imported-network.json) for a valid
+import file.
+
+## API endpoints
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Backend and model-version status |
+| `GET` | `/api/datasets` | Available built-in dataset summaries |
+| `GET` | `/api/datasets/{id}` | Full synthetic dataset payload |
+| `POST` | `/api/datasets/validate` | Validate imported or adapted data |
+| `POST` | `/api/evaluate` | Validate and evaluate a network |
+
+## Evidence boundary
+
+The interface is a decision-support research prototype. A displayed value is a
+bounded modeled risk index, not a probability or direct flood prediction.
+Synthetic fixtures demonstrate controlled structural behavior. Future
+operational records require documented attribute mapping, provenance, data
+quality review, and comparison with observed conditions before they can support
+application-level conclusions.
+
