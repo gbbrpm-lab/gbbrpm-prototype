@@ -72,6 +72,15 @@ export interface ScenarioSnapshot {
   evaluation: EvaluationResponse;
 }
 
+export interface SavedScenario {
+  id: string;
+  name: string;
+  savedAt: string;
+  schemaVersion: "1.0";
+  modelVersion: "0.1.0";
+  snapshot: ScenarioSnapshot;
+}
+
 export interface ComparisonRow {
   id: string;
   baselineRisk: number;

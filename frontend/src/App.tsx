@@ -13,13 +13,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "./api";
 import { GraphCanvas } from "./components/GraphCanvas";
+import { SavedScenarios } from "./components/SavedScenarios";
 import { ScenarioComparison } from "./components/ScenarioComparison";
 import { exportAnalysisManifest, exportComparisonCsv } from "./exports";
+import {
+  createSavedScenario,
+  loadSavedScenarios,
+  persistSavedScenarios,
+} from "./scenarioStore";
 import type {
   DatasetMode,
   DatasetPayload,
   DatasetSummary,
   EvaluationResponse,
+  SavedScenario,
   ScenarioSnapshot,
   Selection,
 } from "./types";
@@ -32,6 +39,15 @@ const MODES: { id: DatasetMode; label: string; detail: string }[] = [
 
 const fmt = (value: number) => value.toFixed(4);
 
+function compatibleForComparison(left: DatasetPayload, right: DatasetPayload) {
+  const nodeKey = (payload: DatasetPayload) => payload.nodes.map((node) => node.id).sort().join("|");
+  const edgeKey = (payload: DatasetPayload) => payload.edges
+    .map((edge) => `${edge.source}->${edge.target}`)
+    .sort()
+    .join("|");
+  return left.id === right.id && nodeKey(left) === nodeKey(right) && edgeKey(left) === edgeKey(right);
+}
+
 export default function App() {
   const [mode, setMode] = useState<DatasetMode>("synthetic");
   const [summaries, setSummaries] = useState<DatasetSummary[]>([]);
@@ -43,9 +59,11 @@ export default function App() {
   const [selection, setSelection] = useState<Selection>(null);
   const [activeView, setActiveView] = useState<"network" | "comparison">("network");
   const [dirty, setDirty] = useState(false);
+  const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>([]);
   const [status, setStatus] = useState("Loading synthetic fixtures…");
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const skipSyntheticLoadRef = useRef(false);
 
   const runEvaluation = useCallback(async (payload: DatasetPayload, captureBaseline = false) => {
     setBusy(true);
@@ -79,7 +97,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    setSavedScenarios(loadSavedScenarios(window.localStorage));
+  }, []);
+
+  useEffect(() => {
     if (mode !== "synthetic") return;
+    if (skipSyntheticLoadRef.current) {
+      skipSyntheticLoadRef.current = false;
+      return;
+    }
     setBusy(true);
     setEvaluation(null);
     setBaseline(null);
@@ -194,6 +220,92 @@ export default function App() {
     setStatus("Current evaluated scenario saved as baseline");
   }
 
+  function updateSavedScenarios(next: SavedScenario[]) {
+    try {
+      persistSavedScenarios(window.localStorage, next);
+      setSavedScenarios(next);
+      return true;
+    } catch {
+      setStatus("Could not update browser-local scenario storage");
+      return false;
+    }
+  }
+
+  function saveNamedScenario(name: string) {
+    if (!dataset || !evaluation || dirty) return;
+    if (savedScenarios.some((item) => item.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+      setStatus(`A saved scenario named “${name}” already exists`);
+      return;
+    }
+    const saved = createSavedScenario(name, {
+      label: name,
+      dataset,
+      evaluation,
+    });
+    if (updateSavedScenarios([saved, ...savedScenarios])) {
+      setStatus(`Saved “${name}” in this browser`);
+    }
+  }
+
+  async function loadNamedScenario(saved: SavedScenario, promoteToBaseline = false) {
+    const payload = structuredClone(saved.snapshot.dataset);
+    const previousBaseline = baseline;
+    const canRetainBaseline = Boolean(
+      !promoteToBaseline && previousBaseline && compatibleForComparison(previousBaseline.dataset, payload),
+    );
+
+    if (payload.mode === "synthetic") {
+      skipSyntheticLoadRef.current = mode !== "synthetic" || selectedId !== payload.id;
+      setSelectedId(payload.id);
+    }
+    setMode(payload.mode);
+    setDataset(payload);
+    setPristine(structuredClone(payload));
+    setEvaluation(null);
+    setSelection(null);
+    setActiveView("network");
+    setDirty(false);
+    if (!canRetainBaseline) setBaseline(null);
+
+    const result = await runEvaluation(payload);
+    if (!result) return;
+
+    if (promoteToBaseline || !canRetainBaseline) {
+      setBaseline({
+        label: saved.name,
+        dataset: structuredClone(payload),
+        evaluation: structuredClone(result),
+      });
+    }
+    setStatus(
+      promoteToBaseline
+        ? `Loaded and verified “${saved.name}” as the comparison baseline`
+        : `Loaded and verified “${saved.name}”`,
+    );
+  }
+
+  function renameSavedScenario(id: string, name: string) {
+    const duplicate = savedScenarios.some(
+      (item) => item.id !== id && item.name.toLocaleLowerCase() === name.toLocaleLowerCase(),
+    );
+    if (duplicate) {
+      setStatus(`A saved scenario named “${name}” already exists`);
+      return;
+    }
+    const next = savedScenarios.map((item) => item.id === id
+      ? { ...item, name, snapshot: { ...item.snapshot, label: name } }
+      : item);
+    if (updateSavedScenarios(next)) setStatus(`Renamed saved scenario to “${name}”`);
+  }
+
+  function deleteSavedScenario(id: string) {
+    const target = savedScenarios.find((item) => item.id === id);
+    if (!target || !window.confirm(`Delete the browser-local scenario “${target.name}”?`)) return;
+    if (updateSavedScenarios(savedScenarios.filter((item) => item.id !== id))) {
+      setStatus(`Deleted “${target.name}”`);
+    }
+  }
+
   function downloadComparisonCsv() {
     if (!baseline || !dataset || !evaluation || dirty) return;
     exportComparisonCsv(baseline, dataset, evaluation);
@@ -286,6 +398,17 @@ export default function App() {
               <div><span>Mode</span><strong>{dataset.mode}</strong></div>
             </div>
           )}
+
+          <SavedScenarios
+            scenarios={savedScenarios}
+            canSave={Boolean(dataset && evaluation && !dirty && !busy)}
+            defaultName={dataset ? `${dataset.id} scenario` : "Scenario name"}
+            onSave={saveNamedScenario}
+            onLoad={(saved) => void loadNamedScenario(saved)}
+            onUseAsBaseline={(saved) => void loadNamedScenario(saved, true)}
+            onRename={renameSavedScenario}
+            onDelete={deleteSavedScenario}
+          />
         </aside>
 
         <section className="center-stage panel">

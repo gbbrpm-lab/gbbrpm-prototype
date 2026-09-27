@@ -24,6 +24,8 @@ The backend uses the tagged model implementation from
 - Explicit stale-result warning after parameter edits
 - CSV comparison export for analysis and thesis tables
 - JSON reproducibility manifest with inputs, outputs, provenance, and model version
+- Named scenario save/load with exact inputs, evaluated outputs, and model metadata
+- Browser-local scenario rename, deletion, and baseline promotion
 - Pinned GBBRPM `v0.1.0` dependency
 
 Operational mode is intentionally inactive until an agency dataset is mapped
@@ -45,6 +47,21 @@ real infrastructure observations.
 
 Export is disabled while parameters have unevaluated changes. This guarantees
 that downloaded candidate inputs correspond to the included model outputs.
+
+## Named scenario workflow
+
+1. Load or modify a network and run the model.
+2. Enter a scenario name under **Saved scenarios** and save the clean evaluation.
+3. Use **Load** to restore its exact inputs. The backend reevaluates those inputs
+   before presenting results, so stored output is not accepted without verification.
+4. Use **Baseline** to load and promote a saved scenario as the comparison
+   reference, then load another compatible saved scenario to compare them.
+5. Rename or delete entries as the scenario library evolves.
+
+Named scenarios use versioned browser-local storage and remain on the current
+browser/profile. They are convenient workspace drafts, not portable evidence.
+Use the JSON analysis manifest when a run must be archived, transferred, or
+cited in the research record. Only clean, evaluated scenarios can be saved.
 
 ### Exported records
 
@@ -107,8 +124,8 @@ gbbrpm-prototype/
 cd backend
 py -m venv .venv
 .venv\Scripts\Activate.ps1
-pip install -r requirements-dev.txt
-uvicorn app.main:app --reload
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload
 ```
 
 ### WSL / Ubuntu
@@ -127,7 +144,7 @@ The API runs at `http://localhost:8000`. Interactive API documentation is at
 Run backend tests from `backend/`:
 
 ```bash
-pytest -q
+python -m pytest -q
 ```
 
 ## Frontend setup
