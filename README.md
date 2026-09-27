@@ -107,8 +107,8 @@ gbbrpm-prototype/
 cd backend
 py -m venv .venv
 .venv\Scripts\Activate.ps1
-pip install -r requirements-dev.txt
-uvicorn app.main:app --reload
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload
 ```
 
 ### WSL / Ubuntu
@@ -127,7 +127,7 @@ The API runs at `http://localhost:8000`. Interactive API documentation is at
 Run backend tests from `backend/`:
 
 ```bash
-pytest -q
+python -m pytest -q
 ```
 
 ## Frontend setup
