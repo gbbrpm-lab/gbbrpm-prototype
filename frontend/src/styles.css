@@ -54,6 +54,32 @@ select:focus, .numeric-field input:focus { border-color: var(--blue); }
 .dataset-facts div { padding: 8px 3px; background: #232528; text-align: center; }
 .dataset-facts span { display: block; color: #8f959e; font-size: 8px; text-transform: uppercase; }
 .dataset-facts strong { display: block; margin-top: 4px; font: 600 10px "JetBrains Mono", monospace; text-transform: capitalize; }
+.saved-scenarios { margin-top: 18px; padding-top: 14px; border-top: 1px solid #505359; }
+.saved-heading { display: flex; justify-content: space-between; align-items: center; }
+.saved-heading .eyebrow { margin-bottom: 2px; }
+.saved-heading span { color: #858c95; font-size: 8px; }
+.saved-heading > strong { color: #8f969f; font: 600 9px "JetBrains Mono", monospace; }
+.scenario-save-row { display: grid; grid-template-columns: 1fr 31px; gap: 4px; margin-top: 9px; }
+.scenario-save-row input, .scenario-rename input { min-width: 0; padding: 7px 8px; border: 1px solid #52565d; border-radius: 2px; outline: 0; background: #1f2124; color: #f4f6f8; font-size: 9px; }
+.scenario-save-row input:focus, .scenario-rename input:focus { border-color: var(--blue); }
+.scenario-save-row button, .scenario-rename button { display: grid; place-items: center; border: 1px solid #596069; border-radius: 2px; background: #25282c; cursor: pointer; }
+.scenario-save-row button:hover, .scenario-rename button:hover { border-color: #6da7f4; color: #75affd; }
+.scenario-save-row button:disabled { opacity: .4; cursor: not-allowed; }
+.saved-hint { margin: 6px 0 0; color: #b4995f; font-size: 8px; line-height: 1.4; }
+.saved-list { display: grid; gap: 5px; margin-top: 8px; }
+.saved-empty { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 48px; border: 1px dashed #50545a; color: #858c95; font-size: 8px; }
+.saved-item { padding: 8px; border: 1px solid #484c52; background: #242629; }
+.saved-item-title { display: flex; justify-content: space-between; gap: 6px; }
+.saved-item-title > div { min-width: 0; }
+.saved-item-title strong { display: block; overflow: hidden; color: #e7e9ed; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.saved-item-title small { display: block; margin-top: 3px; color: #858c95; font: 500 7px "JetBrains Mono", monospace; }
+.saved-item-title > button { width: 22px; height: 22px; flex: none; border: 0; background: transparent; color: #858c95; cursor: pointer; }
+.saved-item-title > button:hover { color: #72adff; }
+.saved-item-actions { display: grid; grid-template-columns: 1fr 1fr 27px; gap: 3px; margin-top: 7px; }
+.saved-item-actions button { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 25px; padding: 3px; border: 1px solid #4c5158; border-radius: 2px; background: #2d3034; color: #bbc0c7; font-size: 7px; cursor: pointer; }
+.saved-item-actions button:hover { border-color: #699fe6; color: #eef5ff; }
+.saved-item-actions button.delete:hover { border-color: #a95b55; color: #f29d95; }
+.scenario-rename { display: grid; grid-template-columns: 1fr 25px 25px; gap: 3px; }
 .upload-card, .empty-card { margin-top: 18px; padding: 18px 13px; border: 1px dashed #595e65; border-radius: 3px; background: #25272a; text-align: center; color: #a3a9b1; }
 .upload-card svg, .empty-card svg { color: #69a7fb; }
 .upload-card strong, .empty-card strong { display: block; margin-top: 9px; color: #f0f2f5; font-size: 11px; }
