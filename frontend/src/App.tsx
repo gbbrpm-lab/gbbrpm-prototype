@@ -321,7 +321,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand-mark"><Network size={21} /></div>
+        <div className="brand-mark"><img src="/favicon.png" alt="GBBRPM" /></div>
         <div className="brand-copy">
           <strong>GBBRPM</strong>
           <span>Risk propagation workspace</span>

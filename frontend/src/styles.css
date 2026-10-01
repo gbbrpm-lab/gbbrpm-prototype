@@ -15,13 +15,23 @@
 }
 
 * { box-sizing: border-box; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #1b1d20; }
+::-webkit-scrollbar-thumb { background: #4a4e54; border: 2px solid #1b1d20; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #62666d; }
+::-webkit-scrollbar-thumb:active { background: var(--blue); }
+::-webkit-scrollbar-corner { background: #1b1d20; }
+
+* { scrollbar-width: thin; scrollbar-color: #4a4e54 #1b1d20; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #17191c; }
 button, input, select { font: inherit; }
 button { color: inherit; }
 
 .app-shell { min-height: 100vh; padding: 8px; background: #17191c; }
 .topbar { height: 58px; display: flex; align-items: center; gap: 11px; padding: 0 17px; border: 1px solid #34373b; border-bottom-color: #111315; background: linear-gradient(#292b2f, #222427); box-shadow: 0 4px 18px rgba(0, 0, 0, .22); }
-.brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #4a4e54; background: #1b1d20; color: var(--blue); border-radius: 4px; }
+.brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border: 0; background: transparent; border-radius: 4px; overflow: hidden; }
+.brand-mark img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .brand-copy { display: flex; flex-direction: column; line-height: 1.05; }
 .brand-copy strong { color: #58a0ff; font: 600 15px "JetBrains Mono", monospace; letter-spacing: .035em; }
 .brand-copy span { margin-top: 5px; color: #9298a1; font-size: 10px; }
@@ -118,38 +128,38 @@ select:focus, .numeric-field input:focus { border-color: var(--blue); }
 .statusbar { height: 31px; flex: none; display: flex; align-items: center; gap: 7px; padding: 0 14px; border-top: 1px solid #4c5055; color: #bbc0c7; background: #282a2d; font: 500 9px "JetBrains Mono", monospace; }
 .statusbar svg { color: #66a5f8; }
 
-.comparison-view { flex: 1; min-height: 0; overflow: auto; padding: 10px; color: #252b31; background: #343639; }
-.comparison-warning { margin-bottom: 9px; padding: 9px 11px; border: 1px solid #c49032; background: #fff4d9; color: #6c4c10; font-size: 9px; }
+.comparison-view { flex: 1; min-height: 0; overflow: auto; padding: 10px; color: #f5f7fa; background: #343639; }
+.comparison-warning { margin-bottom: 9px; padding: 9px 11px; border: 1px solid #8a6a2a; background: #342c1c; color: #e8c56a; font-size: 9px; }
 .comparison-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin-bottom: 9px; }
-.comparison-summary > div { min-height: 86px; display: flex; flex-direction: column; justify-content: center; padding: 12px; border: 1px solid #bec3c9; border-top: 3px solid var(--blue); background: #f6f7f8; }
-.comparison-summary span { color: #69717a; font-size: 8px; text-transform: uppercase; letter-spacing: .06em; }
-.comparison-summary strong { margin-top: 7px; color: #20262c; font: 600 18px "JetBrains Mono", monospace; }
-.comparison-summary output { margin-top: 4px; color: #68717a; font: 500 9px "JetBrains Mono", monospace; }
-.comparison-table-wrap { min-height: 0; border: 8px solid #45484b; background: #f4f5f7; box-shadow: 0 0 0 1px #202225; }
-.comparison-table-title { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #c6cbd0; background: #eceef0; }
-.comparison-table-title .eyebrow { margin-bottom: 3px; color: #313840; }
-.comparison-table-title span { color: #6b737c; font-size: 8px; }
-.scenario-key { display: flex; align-items: center; gap: 5px; color: #68717a; font-size: 8px; }
-.scenario-key i { width: 13px; height: 3px; background: #9aa2aa; }
+.comparison-summary > div { min-height: 86px; display: flex; flex-direction: column; justify-content: center; padding: 12px; border: 1px solid #4a4d52; border-top: 3px solid var(--blue); background: #26282b; }
+.comparison-summary span { color: #969ca5; font-size: 8px; text-transform: uppercase; letter-spacing: .06em; }
+.comparison-summary strong { margin-top: 7px; color: #f0f2f5; font: 600 18px "JetBrains Mono", monospace; }
+.comparison-summary output { margin-top: 4px; color: #969ca5; font: 500 9px "JetBrains Mono", monospace; }
+.comparison-table-wrap { min-height: 0; border: 8px solid #45484b; background: #1f2124; box-shadow: 0 0 0 1px #202225; }
+.comparison-table-title { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #3a3d42; background: #26282b; }
+.comparison-table-title .eyebrow { margin-bottom: 3px; color: #d9dde3; }
+.comparison-table-title span { color: #969ca5; font-size: 8px; }
+.scenario-key { display: flex; align-items: center; gap: 5px; color: #969ca5; font-size: 8px; }
+.scenario-key i { width: 13px; height: 3px; background: #8a9098; }
 .scenario-key i:last-of-type { margin-left: 7px; background: var(--blue); }
 .comparison-tools { display: flex; align-items: center; gap: 6px; }
-.comparison-tools button { display: flex; align-items: center; gap: 5px; padding: 6px 8px; border: 1px solid #9ca4ac; border-radius: 2px; background: #f7f8f9; color: #39424b; font-size: 8px; cursor: pointer; }
-.comparison-tools button:hover { border-color: #397fdc; color: #185fac; background: #edf5ff; }
+.comparison-tools button { display: flex; align-items: center; gap: 5px; padding: 6px 8px; border: 1px solid #555a61; border-radius: 2px; background: #25282c; color: #bbc0c7; font-size: 8px; cursor: pointer; }
+.comparison-tools button:hover { border-color: #6da7f4; color: #eef5ff; background: #27384f; }
 .comparison-tools button:disabled { opacity: .45; cursor: not-allowed; }
 .comparison-table { width: 100%; border-collapse: collapse; font: 500 9px "JetBrains Mono", monospace; }
-.comparison-table th { padding: 9px 12px; border-bottom: 1px solid #b9bec4; background: #dfe2e5; color: #59616a; text-align: left; font-size: 8px; text-transform: uppercase; letter-spacing: .04em; }
-.comparison-table td { padding: 9px 12px; border-bottom: 1px solid #d8dce0; color: #424a52; }
+.comparison-table th { padding: 9px 12px; border-bottom: 1px solid #3a3d42; background: #2c2e31; color: #969ca5; text-align: left; font-size: 8px; text-transform: uppercase; letter-spacing: .04em; }
+.comparison-table td { padding: 9px 12px; border-bottom: 1px solid #33363a; color: #c3c7cd; }
 .comparison-table tbody tr { cursor: pointer; }
-.comparison-table tbody tr:hover { background: #e7f0fd; }
-.comparison-table td:first-child { display: flex; align-items: center; gap: 7px; color: #1f252b; }
-.comparison-table td small { padding: 2px 4px; border: 1px solid #765d91; color: #684c84; font: 600 7px "DM Sans", sans-serif; text-transform: uppercase; }
-.comparison-table .delta-up { color: #b43d32; }
-.comparison-table .delta-down { color: #16805d; }
-.comparison-table .delta-flat { color: #7c838a; }
+.comparison-table tbody tr:hover { background: #27384f; }
+.comparison-table td:first-child { display: flex; align-items: center; gap: 7px; color: #f0f2f5; }
+.comparison-table td small { padding: 2px 4px; border: 1px solid #665480; color: #d5baf4; font: 600 7px "DM Sans", sans-serif; text-transform: uppercase; }
+.comparison-table .delta-up { color: #e8837a; }
+.comparison-table .delta-down { color: #5ec49f; }
+.comparison-table .delta-flat { color: #969ca5; }
 .movement-up, .movement-down, .movement-flat { display: inline-flex; align-items: center; gap: 2px; }
-.movement-up { color: #b43d32; }.movement-down { color: #16805d; }.movement-flat { color: #7c838a; }
-.comparison-empty { flex: 1; display: grid; place-content: center; justify-items: center; gap: 9px; margin: 10px; border: 8px solid #45484b; background: #f4f5f7; color: #69737e; }
-.comparison-empty strong { color: #303841; font-size: 12px; }
+.movement-up { color: #e8837a; }.movement-down { color: #5ec49f; }.movement-flat { color: #969ca5; }
+.comparison-empty { flex: 1; display: grid; place-content: center; justify-items: center; gap: 9px; margin: 10px; border: 8px solid #45484b; background: #1f2124; color: #969ca5; }
+.comparison-empty strong { color: #e7e9ed; font-size: 12px; }
 .comparison-empty span { font-size: 9px; }
 
 .selection-title { display: flex; justify-content: space-between; align-items: baseline; margin: 5px 0 16px; }
