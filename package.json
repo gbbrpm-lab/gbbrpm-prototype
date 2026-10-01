@@ -1,0 +1,13 @@
+{
+  "name": "gbbrpm-prototype",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:frontend": "node scripts/dev.mjs frontend",
+    "dev:backend": "node scripts/dev.mjs backend",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "test": "npm --prefix frontend run test"
+  }
+}

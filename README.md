@@ -151,6 +151,9 @@ gbbrpm-prototype/
 │   └── vite.config.ts
 ├── examples/
 │   └── imported-network.json
+├── scripts/
+│   └── dev.mjs
+├── package.json
 └── README.md
 ```
 
@@ -160,7 +163,62 @@ gbbrpm-prototype/
 - Node.js 20 or newer
 - Git, because the backend installs the tagged model from GitHub
 
-## Backend setup
+## Quick start
+
+One-time setup is required before the first run: the backend needs its virtual
+environment and Python packages, and the frontend needs its npm packages.
+
+### One-time setup
+
+```powershell
+# backend (from the repository root)
+cd backend
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+cd ..
+
+# frontend
+cd frontend
+npm install
+cd ..
+```
+
+On WSL / Ubuntu use `python3 -m venv .venv`, `source .venv/bin/activate`, and
+`pip install -r requirements-dev.txt` instead.
+
+### Run both together
+
+```bash
+npm run dev
+```
+
+This single command starts the backend and the frontend with prefixed log
+output:
+
+| Service | URL |
+| --- | --- |
+| Frontend | `http://localhost:5173` |
+| Backend API | `http://localhost:8000` |
+| API documentation | `http://localhost:8000/docs` |
+
+Press `Ctrl+C` once to stop both processes.
+
+Other root commands:
+
+```bash
+npm run dev:backend    # backend only
+npm run dev:frontend   # frontend only
+npm run build          # production build (tsc -b && vite build)
+npm run preview        # preview the production build
+npm run test           # frontend unit tests
+```
+
+The root `npm run dev` expects `frontend/node_modules` to exist (run
+`npm install` in `frontend/` once) and a backend virtual environment at
+`backend/.venv` (created during one-time setup).
+
+## Backend setup (manual)
 
 ### Windows PowerShell
 
@@ -191,7 +249,7 @@ Run backend tests from `backend/`:
 python -m pytest -q
 ```
 
-## Frontend setup
+## Frontend setup (manual)
 
 In another terminal:
 
