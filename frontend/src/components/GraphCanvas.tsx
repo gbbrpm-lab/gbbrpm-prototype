@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type {
   DatasetPayload,
   EvaluationResponse,
+  EvaluationStep,
   Selection,
 } from "../types";
 
@@ -11,6 +12,14 @@ interface Props {
   dataset: DatasetPayload;
   evaluation: EvaluationResponse | null;
   onSelect: (selection: Selection) => void;
+  selection: Selection;
+  walkthrough?: {
+    revealedNodes: Set<string>;
+    revealedEdges: Set<string>;
+    current: EvaluationStep | null;
+    playing: boolean;
+    reducedMotion: boolean;
+  } | null;
 }
 
 function riskColor(risk: number): string {
@@ -20,28 +29,23 @@ function riskColor(risk: number): string {
   return "#31a37c";
 }
 
-export function GraphCanvas({ dataset, evaluation, onSelect }: Props) {
+export function GraphCanvas({ dataset, evaluation, onSelect, selection, walkthrough }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<Core | null>(null);
+  const topologyKey = JSON.stringify([dataset.id, dataset.nodes.map((node) => node.id), dataset.edges.map((edge) => [edge.source, edge.target])]);
+  const datasetRef = useRef(dataset);
+  datasetRef.current = dataset;
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const risks = new Map(
-      evaluation?.risks.map((record) => [record.id, record.risk]) ?? [],
-    );
-    const contributions = new Map(
-      evaluation?.contributions.map((edge) => [
-        `${edge.source}->${edge.target}`,
-        edge.Q,
-      ]) ?? [],
-    );
+    const dataset = datasetRef.current;
 
     instanceRef.current?.destroy();
     const cy = cytoscape({
       container: containerRef.current,
       elements: [
         ...dataset.nodes.map((node) => {
-          const risk = risks.get(node.id) ?? node.B;
+          const risk = node.B;
           return {
             data: {
               id: node.id,
@@ -57,7 +61,7 @@ export function GraphCanvas({ dataset, evaluation, onSelect }: Props) {
             id: `${edge.source}->${edge.target}`,
             source: edge.source,
             target: edge.target,
-            contribution: contributions.get(`${edge.source}->${edge.target}`) ?? 0,
+            contribution: 0,
           },
         })),
       ],
@@ -98,6 +102,14 @@ export function GraphCanvas({ dataset, evaluation, onSelect }: Props) {
           },
         },
         {
+          selector: "node.pending",
+          style: { "background-color": "#a2aab3", "border-color": "#c6ccd3", opacity: 0.6 },
+        },
+        {
+          selector: "edge.pending",
+          style: { opacity: 0.2 },
+        },
+        {
           selector: ":selected",
           style: {
             "border-color": "#246fd6",
@@ -105,6 +117,14 @@ export function GraphCanvas({ dataset, evaluation, onSelect }: Props) {
             "line-color": "#246fd6",
             "target-arrow-color": "#246fd6",
           },
+        },
+        {
+          selector: "node.active-step",
+          style: { "border-color": "#246fd6", "border-width": 6, opacity: 1 },
+        },
+        {
+          selector: "edge.active-step",
+          style: { "line-color": "#246fd6", "target-arrow-color": "#246fd6", "line-style": "dashed", "line-dash-pattern": [8, 5], width: 5, opacity: 1 },
         },
       ],
       layout: {
@@ -134,7 +154,60 @@ export function GraphCanvas({ dataset, evaluation, onSelect }: Props) {
     instanceRef.current = cy;
 
     return () => cy.destroy();
-  }, [dataset, evaluation, onSelect]);
+  }, [topologyKey, onSelect]);
+
+  useEffect(() => {
+    const cy = instanceRef.current;
+    if (!cy) return;
+    const risks = new Map(evaluation?.risks.map((record) => [record.id, record.risk]) ?? []);
+    const contributions = new Map(evaluation?.contributions.map((edge) => [`${edge.source}->${edge.target}`, edge.Q]) ?? []);
+    cy.batch(() => {
+      for (const node of dataset.nodes) {
+        const element = cy.getElementById(node.id);
+        const risk = risks.get(node.id) ?? node.B;
+        element.data({ color: riskColor(risk), risk, label: node.label ?? node.id, outlet: node.outlet ? "yes" : "no" });
+        element.toggleClass("pending", Boolean(walkthrough && !walkthrough.revealedNodes.has(node.id)));
+      }
+      for (const edge of dataset.edges) {
+        const id = `${edge.source}->${edge.target}`;
+        cy.getElementById(id).data("contribution", contributions.get(id) ?? 0)
+          .toggleClass("pending", Boolean(walkthrough && !walkthrough.revealedEdges.has(id)));
+      }
+      cy.elements().removeClass("active-step");
+      const current = walkthrough?.current;
+      if (current) {
+        cy.getElementById(current.node).addClass("active-step");
+        if (current.contribution) cy.getElementById(`${current.contribution.source}->${current.contribution.target}`).addClass("active-step");
+      }
+    });
+  }, [topologyKey, dataset, evaluation, walkthrough]);
+
+  useEffect(() => {
+    const cy = instanceRef.current;
+    if (!cy) return;
+    cy.elements().unselect();
+    if (!selection) return;
+    const id = selection.type === "node" ? selection.id : `${selection.source}->${selection.target}`;
+    const element = cy.getElementById(id);
+    element.select();
+    if (element.length && selection.type === "node") cy.center(element);
+  }, [topologyKey, selection]);
+
+  useEffect(() => {
+    const cy = instanceRef.current;
+    if (!cy || !walkthrough?.playing || walkthrough.reducedMotion) return;
+    const edges = cy.edges(".active-step");
+    let frame = 0;
+    const draw = (time: number) => {
+      edges.style("line-dash-offset", -(time / 35) % 13);
+      frame = window.requestAnimationFrame(draw);
+    };
+    frame = window.requestAnimationFrame(draw);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      edges.removeStyle("line-dash-offset");
+    };
+  }, [topologyKey, walkthrough]);
 
   return <div className="graph-canvas" ref={containerRef} />;
 }
