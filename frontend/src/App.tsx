@@ -70,8 +70,8 @@ export default function App() {
   const [animateEvaluation, setAnimateEvaluation] = useState(false);
   const playback = useWalkthrough();
   const { start: startWalkthrough, cancel: cancelWalkthrough } = playback;
-  const frame = useMemo(() => walkthroughFrame(playback.trace, playback.cursor), [playback.trace, playback.cursor]);
-  const walkthroughPending = playback.active && playback.cursor < playback.trace.length;
+  const frame = useMemo(() => walkthroughFrame(playback.timeline, playback.time), [playback.timeline, playback.time]);
+  const walkthroughPending = playback.active && playback.time < playback.timeline.duration;
 
   useEffect(() => { cancelWalkthrough(); }, [dataset, cancelWalkthrough]);
 

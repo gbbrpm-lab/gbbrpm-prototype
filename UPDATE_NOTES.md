@@ -25,7 +25,8 @@ servers; a frontend-only update will not receive the new backend trace.
 
 Use **Animate evaluation after Run**, then **Run model**. Use **Next** for a
 manual consultation walkthrough. Animation is calculation order, not physical
-time. Independent branches are sequential in this first version. The project
+time. Independent branches advance in parallel on a continuous clock with live
+panel values. The project
 title has not been changed; resolve the manuscript's Blockage/Bounded naming
 separately before renaming the prototype.
 

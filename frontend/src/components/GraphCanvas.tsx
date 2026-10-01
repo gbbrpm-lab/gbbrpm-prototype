@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import type {
   DatasetPayload,
   EvaluationResponse,
-  EvaluationStep,
   Selection,
 } from "../types";
 
@@ -16,7 +15,8 @@ interface Props {
   walkthrough?: {
     revealedNodes: Set<string>;
     revealedEdges: Set<string>;
-    current: EvaluationStep | null;
+    activeNodes: Set<string>;
+    activeEdges: Set<string>;
     playing: boolean;
     reducedMotion: boolean;
   } | null;
@@ -41,6 +41,7 @@ export function GraphCanvas({ dataset, evaluation, onSelect, selection, walkthro
     const dataset = datasetRef.current;
 
     instanceRef.current?.destroy();
+    const transitionMs = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 320;
     const cy = cytoscape({
       container: containerRef.current,
       elements: [
@@ -82,6 +83,8 @@ export function GraphCanvas({ dataset, evaluation, onSelect, selection, walkthro
             "border-width": 3,
             "border-color": "#f4f5f7",
             "overlay-opacity": 0,
+            "transition-property": "background-color, border-color, opacity",
+            "transition-duration": transitionMs,
           },
         },
         {
@@ -99,6 +102,8 @@ export function GraphCanvas({ dataset, evaluation, onSelect, selection, walkthro
             "arrow-scale": 0.8,
             opacity: 0.82,
             "overlay-opacity": 0,
+            "transition-property": "line-color, target-arrow-color, opacity, width",
+            "transition-duration": transitionMs,
           },
         },
         {
@@ -108,6 +113,10 @@ export function GraphCanvas({ dataset, evaluation, onSelect, selection, walkthro
         {
           selector: "edge.pending",
           style: { opacity: 0.2 },
+        },
+        {
+          selector: "edge.flow",
+          style: { "line-style": "dashed", "line-dash-pattern": [8, 5] },
         },
         {
           selector: ":selected",
@@ -167,17 +176,18 @@ export function GraphCanvas({ dataset, evaluation, onSelect, selection, walkthro
         const risk = risks.get(node.id) ?? node.B;
         element.data({ color: riskColor(risk), risk, label: node.label ?? node.id, outlet: node.outlet ? "yes" : "no" });
         element.toggleClass("pending", Boolean(walkthrough && !walkthrough.revealedNodes.has(node.id)));
+        element.toggleClass("active-step", Boolean(walkthrough?.activeNodes.has(node.id)));
       }
       for (const edge of dataset.edges) {
         const id = `${edge.source}->${edge.target}`;
-        cy.getElementById(id).data("contribution", contributions.get(id) ?? 0)
-          .toggleClass("pending", Boolean(walkthrough && !walkthrough.revealedEdges.has(id)));
-      }
-      cy.elements().removeClass("active-step");
-      const current = walkthrough?.current;
-      if (current) {
-        cy.getElementById(current.node).addClass("active-step");
-        if (current.contribution) cy.getElementById(`${current.contribution.source}->${current.contribution.target}`).addClass("active-step");
+        const revealed = !walkthrough || walkthrough.revealedEdges.has(id);
+        const flowing = Boolean(walkthrough && !walkthrough.reducedMotion &&
+          (walkthrough.activeEdges.has(id) || walkthrough.revealedEdges.has(id)));
+        cy.getElementById(id)
+          .data("contribution", revealed ? contributions.get(id) ?? 0 : 0)
+          .toggleClass("pending", !revealed)
+          .toggleClass("active-step", Boolean(walkthrough?.activeEdges.has(id)))
+          .toggleClass("flow", flowing);
       }
     });
   }, [topologyKey, dataset, evaluation, walkthrough]);
@@ -195,8 +205,9 @@ export function GraphCanvas({ dataset, evaluation, onSelect, selection, walkthro
 
   useEffect(() => {
     const cy = instanceRef.current;
-    if (!cy || !walkthrough?.playing || walkthrough.reducedMotion) return;
-    const edges = cy.edges(".active-step");
+    if (!cy || !walkthrough || walkthrough.reducedMotion) return;
+    const edges = cy.edges(".flow");
+    if (edges.length === 0) return;
     let frame = 0;
     const draw = (time: number) => {
       edges.style("line-dash-offset", -(time / 35) % 13);

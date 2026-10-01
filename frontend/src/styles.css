@@ -137,6 +137,7 @@ select:focus, .numeric-field input:focus { border-color: var(--blue); }
 .step-calculation { min-height: 64px; display: grid; gap: 5px; font-size: 11px; }
 .step-calculation code, .calculation-details code { overflow-wrap: anywhere; font: 10px "JetBrains Mono", monospace; color: #a7cffd; }
 .step-calculation p, .walkthrough-note { margin: 2px 0; color: #a9b4c3; font-size: 10px; line-height: 1.5; }
+.step-calculation .live-step { display: grid; gap: 3px; padding: 6px 8px; border-left: 2px solid var(--blue); background: #1d232b; }
 .walkthrough-note { margin-top: 8px; }
 .calculation-details { display: grid; gap: 7px; margin-top: 12px; padding: 10px; border: 1px solid #4e5966; background: #22272e; font-size: 10px; }
 .calculation-details p { margin: 0; line-height: 1.5; color: #b7c4d2; }

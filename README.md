@@ -27,8 +27,9 @@ The backend uses the tagged model implementation from
 - Named scenario save/load with exact inputs, evaluated outputs, and model metadata
 - Browser-local scenario rename, deletion, and baseline promotion
 - Pinned GBBRPM `v0.1.0` dependency
-- Optional evaluation walkthrough with directional edge animation and a calculation panel
-- Play/pause, previous/next, speed, restart, replay, and skip-to-results controls
+- Optional evaluation walkthrough with continuous pipelined edge pulses, smooth
+  node/edge transitions, persistent flowing edge dashes, and a live calculation panel
+- Play/pause, event-boundary previous/next, speed, restart, replay, and skip-to-results controls
 - Incoming-contribution inspection and backend-derived susceptibility values
 - Explicit `S` editing for imported networks without `L`/`C`
 - Synchronized graph selection from the ranking and comparison views
@@ -42,12 +43,19 @@ real infrastructure observations.
 
 1. Enable **Animate evaluation after Run**, then click **Run model**. Initial
    dataset loading remains instant; animation is off by default.
-2. Source nodes are initialized first. Incoming edge contributions are then
-   shown before each downstream node's final aggregation is revealed.
+2. Each node starts the moment its predecessors settle. Contributions travel
+   along their edges as continuous pulses while other branches already advance,
+   so independent paths progress in parallel on one live clock instead of
+   snapping through layers. Nodes that become ready together are staggered
+   slightly so the frontier spreads visibly. An edge that starts transmitting
+   keeps its flowing dashes for the rest of the walkthrough, so established
+   channels stay visibly in motion until the walkthrough is closed.
 3. Read the step panel for `Q = S × tau × R_source` and
-   `R = 1 − (1 − B) × product(1 − Q)`. These values come from the backend
-   engine's existing outputs; the frontend does not evaluate the model again.
-4. Pause or use **Previous**/**Next** to study individual steps. **Restart**
+   `R = 1 − (1 − B) × product(1 − Q)`. Both values tick up live while the step
+   computes and land exactly on the backend engine's outputs when it settles;
+   the frontend does not evaluate the model again.
+4. Pause or use **Previous**/**Next** to jump between event boundaries; the
+   progress bar tracks seconds elapsed. **Restart**
    returns to the beginning paused; **Skip to results** reveals the final graph
    and ranking. **Replay last evaluation** needs no new API call.
 5. Editing parameters or changing datasets cancels the walkthrough. Existing
@@ -55,8 +63,9 @@ real infrastructure observations.
 
 This animation represents a valid topological **calculation order**, not
 physical travel time, flow speed, or stochastic event timing. Independent
-branches are shown sequentially in this first version; their ordering does not
-imply that one physical branch propagates before another. At convergence, every
+branches advance in parallel because neither depends on the other; this
+simultaneity does not imply that two physical branches travel at the same speed.
+At convergence, every
 incoming contribution is shown before the target is revealed. A zero-valued
 contribution is still a calculation step, not a positive transfer of risk.
 
