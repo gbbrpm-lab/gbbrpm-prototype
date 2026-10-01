@@ -70,8 +70,8 @@ export default function App() {
   const [animateEvaluation, setAnimateEvaluation] = useState(false);
   const playback = useWalkthrough();
   const { start: startWalkthrough, cancel: cancelWalkthrough } = playback;
-  const frame = useMemo(() => walkthroughFrame(playback.trace, playback.cursor), [playback.trace, playback.cursor]);
-  const walkthroughPending = playback.active && playback.cursor < playback.trace.length;
+  const frame = useMemo(() => walkthroughFrame(playback.trace, playback.cursor, playback.mode), [playback.trace, playback.cursor, playback.mode]);
+  const walkthroughPending = playback.active && playback.cursor < playback.batches.length;
 
   useEffect(() => { cancelWalkthrough(); }, [dataset, cancelWalkthrough]);
 
@@ -464,6 +464,12 @@ export default function App() {
 
           {dataset && <div className="animation-options">
             <label><input type="checkbox" checked={animateEvaluation} disabled={busy} onChange={(event) => { setAnimateEvaluation(event.target.checked); if (!event.target.checked) cancelWalkthrough(); }} /> Animate evaluation after Run</label>
+            <label>Playback mode <select aria-label="Playback mode" disabled={busy} value={playback.mode}
+              title="Changing mode restarts an active walkthrough paused"
+              onChange={(event) => playback.setMode(event.target.value as "step" | "simultaneous")}>
+              <option value="step">Step-by-step</option>
+              <option value="simultaneous">Simultaneous branches</option>
+            </select></label>
             <button disabled={busy || dirty || !evaluation?.trace?.length} onClick={() => {
               setActiveView("network"); startWalkthrough(evaluation?.trace ?? [], !playback.reducedMotion);
             }}>Replay last evaluation</button>

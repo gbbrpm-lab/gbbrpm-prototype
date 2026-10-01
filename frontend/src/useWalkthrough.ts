@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { EvaluationStep } from "./types";
 import { emptyWalkthrough, walkthroughReducer } from "./walkthrough";
+import type { PlaybackMode } from "./walkthrough";
 
 export function useWalkthrough() {
   const [state, dispatch] = useReducer(walkthroughReducer, emptyWalkthrough);
   const [speed, setSpeed] = useState(1);
+  const [mode, setModeState] = useState<PlaybackMode>("step");
+  const modeRef = useRef<PlaybackMode>("step");
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -19,14 +22,19 @@ export function useWalkthrough() {
     return () => window.clearTimeout(timer);
   }, [state.playing, state.cursor, speed]);
   const start = useCallback((trace: EvaluationStep[], play = true) => {
-    dispatch({ type: "start", trace, play });
+    dispatch({ type: "start", trace, play, mode: modeRef.current });
   }, []);
   const cancel = useCallback(() => dispatch({ type: "cancel" }), []);
   const move = (cursor: number) => {
     // Manual navigation always pauses so a timer cannot override the chosen step.
-    dispatch({ type: "start", trace: state.trace, play: false });
+    dispatch({ type: "start", trace: state.trace, play: false, mode: modeRef.current });
     dispatch({ type: "move", cursor });
   };
-  return { ...state, speed, setSpeed, reducedMotion, start, cancel, move,
+  const setMode = (nextMode: PlaybackMode) => {
+    modeRef.current = nextMode;
+    setModeState(nextMode);
+    if (state.active) dispatch({ type: "start", trace: state.trace, play: false, mode: nextMode });
+  };
+  return { ...state, mode, setMode, speed, setSpeed, reducedMotion, start, cancel, move,
     toggle: () => dispatch({ type: "toggle" }) };
 }

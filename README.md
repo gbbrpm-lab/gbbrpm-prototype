@@ -28,6 +28,7 @@ The backend uses the tagged model implementation from
 - Browser-local scenario rename, deletion, and baseline promotion
 - Pinned GBBRPM `v0.1.0` dependency
 - Optional evaluation walkthrough with directional edge animation and a calculation panel
+- Step-by-step or simultaneous-branch playback using the same evaluated results
 - Play/pause, previous/next, speed, restart, replay, and skip-to-results controls
 - Incoming-contribution inspection and backend-derived susceptibility values
 - Explicit `S` editing for imported networks without `L`/`C`
@@ -42,6 +43,7 @@ real infrastructure observations.
 
 1. Enable **Animate evaluation after Run**, then click **Run model**. Initial
    dataset loading remains instant; animation is off by default.
+   Choose **Step-by-step** or **Simultaneous branches** from **Playback mode**.
 2. Source nodes are initialized first. Incoming edge contributions are then
    shown before each downstream node's final aggregation is revealed.
 3. Read the step panel for `Q = S × tau × R_source` and
@@ -55,10 +57,20 @@ real infrastructure observations.
 
 This animation represents a valid topological **calculation order**, not
 physical travel time, flow speed, or stochastic event timing. Independent
-branches are shown sequentially in this first version; their ordering does not
+branches can be shown sequentially or simultaneously; their visual timing does not
 imply that one physical branch propagates before another. At convergence, every
 incoming contribution is shown before the target is revealed. A zero-valued
 contribution is still a calculation step, not a positive transfer of risk.
+
+**Simultaneous branches** schedules each edge as soon as its source has been
+revealed. Early contributions may arrive while a longer branch is still being
+evaluated; aggregation waits for the latest incoming contribution. This uses
+dependency readiness rather than a barrier that waits for every node in a
+topological layer. Events ready at the same presentation tick animate together.
+The panel lists all concurrent events; **Previous**/**Next** navigate grouped
+frames rather than individual events. No model formula, susceptibility, or
+final risk is recalculated. Changing playback mode restarts the active walkthrough
+paused; press **Play** to resume from the beginning in the selected mode.
 
 Reduced-motion preferences suppress moving edge dashes and start the walkthrough
 paused for manual navigation. Final ranking remains hidden during the walkthrough

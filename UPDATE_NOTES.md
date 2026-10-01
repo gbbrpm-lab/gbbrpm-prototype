@@ -3,6 +3,10 @@
 ## Changes
 
 - Optional animation after Run; replay without reevaluating.
+- Playback mode selector: step-by-step or simultaneous branches.
+- Simultaneous edges start when their sources are ready; convergence waits for
+  all incoming contributions. The panel shows every concurrent event.
+- Switching mode restarts playback paused without an API call or changed results.
 - Source initialization, directional moving edge dashes, and convergence aggregation.
 - Play/pause, manual previous/next, speed, restart, and skip to final results.
 - Backend result trace: no changes to the GBBRPM engine or numeric calculations.
@@ -25,7 +29,7 @@ servers; a frontend-only update will not receive the new backend trace.
 
 Use **Animate evaluation after Run**, then **Run model**. Use **Next** for a
 manual consultation walkthrough. Animation is calculation order, not physical
-time. Independent branches are sequential in this first version. The project
+time. Independent branches can now animate together. The project
 title has not been changed; resolve the manuscript's Blockage/Bounded naming
 separately before renaming the prototype.
 
@@ -33,10 +37,12 @@ separately before renaming the prototype.
 
 - Backend: 9 tests passed, including the frozen N5 outlet risk and deterministic
   traces for every N1–N5 network.
-- Frontend: 11 tests passed, covering saved-scenario compatibility, playback
-  state, convergence reveal order, and calculation-panel values.
+- Frontend: 15 tests passed, covering saved-scenario compatibility, playback
+  state, convergence reveal order, calculation-panel values, simultaneous source/
+  edge grouping, early arrival on unequal branches, concurrent event display,
+  identical final visibility, and frame-based skip/replay/previous behavior.
 - Production TypeScript/Vite build: passed. Vite reports a non-blocking bundle
-  size warning (main JavaScript chunk approximately 631 kB).
+  size warning (main JavaScript chunk approximately 632 kB).
 - Tests used the exact GBBRPM engine bundled in the uploaded Windows environment,
   with fresh Linux test dependencies. Your Windows virtual environment was not
   modified or executed.
@@ -53,6 +59,14 @@ separately before renaming the prototype.
 5. Import `examples/imported-network.json`; select an edge and verify explicit S.
 6. Set OS/browser reduced motion; replay should start paused without moving dashes.
 7. Check laptop and phone widths; inspector and playback controls should remain accessible.
+8. Choose **Simultaneous branches**; replay and verify multiple edges highlight
+   together. Change mode during playback; it should restart paused. Check an
+   unequal-length converging network: its early contribution can arrive before
+   the longer branch, but the target must wait for every incoming contribution.
+
+If you already applied the earlier animation update, this second update changes
+only frontend source and documentation. No backend or dependency changes are
+needed; restart the frontend after copying the updated files.
 
 The archive excludes dependencies, build output, caches, and Git history. It is
 a source update, not a replacement for your local development environment.

@@ -16,7 +16,7 @@ interface Props {
   walkthrough?: {
     revealedNodes: Set<string>;
     revealedEdges: Set<string>;
-    current: EvaluationStep | null;
+    currents: EvaluationStep[];
     playing: boolean;
     reducedMotion: boolean;
   } | null;
@@ -174,8 +174,7 @@ export function GraphCanvas({ dataset, evaluation, onSelect, selection, walkthro
           .toggleClass("pending", Boolean(walkthrough && !walkthrough.revealedEdges.has(id)));
       }
       cy.elements().removeClass("active-step");
-      const current = walkthrough?.current;
-      if (current) {
+      for (const current of walkthrough?.currents ?? []) {
         cy.getElementById(current.node).addClass("active-step");
         if (current.contribution) cy.getElementById(`${current.contribution.source}->${current.contribution.target}`).addClass("active-step");
       }
