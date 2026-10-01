@@ -27,10 +27,54 @@ The backend uses the tagged model implementation from
 - Named scenario save/load with exact inputs, evaluated outputs, and model metadata
 - Browser-local scenario rename, deletion, and baseline promotion
 - Pinned GBBRPM `v0.1.0` dependency
+- Optional evaluation walkthrough with directional edge animation and a calculation panel
+- Play/pause, previous/next, speed, restart, replay, and skip-to-results controls
+- Incoming-contribution inspection and backend-derived susceptibility values
+- Explicit `S` editing for imported networks without `L`/`C`
+- Synchronized graph selection from the ranking and comparison views
+- Inspector and ranking remain accessible below the graph on narrow screens
 
 Operational mode is intentionally inactive until an agency dataset is mapped
 and documented. This prevents demonstration fixtures from being mistaken for
 real infrastructure observations.
+
+## Evaluation walkthrough
+
+1. Enable **Animate evaluation after Run**, then click **Run model**. Initial
+   dataset loading remains instant; animation is off by default.
+2. Source nodes are initialized first. Incoming edge contributions are then
+   shown before each downstream node's final aggregation is revealed.
+3. Read the step panel for `Q = S × tau × R_source` and
+   `R = 1 − (1 − B) × product(1 − Q)`. These values come from the backend
+   engine's existing outputs; the frontend does not evaluate the model again.
+4. Pause or use **Previous**/**Next** to study individual steps. **Restart**
+   returns to the beginning paused; **Skip to results** reveals the final graph
+   and ranking. **Replay last evaluation** needs no new API call.
+5. Editing parameters or changing datasets cancels the walkthrough. Existing
+   stale-result warnings still apply until a fresh evaluation completes.
+
+This animation represents a valid topological **calculation order**, not
+physical travel time, flow speed, or stochastic event timing. Independent
+branches are shown sequentially in this first version; their ordering does not
+imply that one physical branch propagates before another. At convergence, every
+incoming contribution is shown before the target is revealed. A zero-valued
+contribution is still a calculation step, not a positive transfer of risk.
+
+Reduced-motion preferences suppress moving edge dashes and start the walkthrough
+paused for manual navigation. Final ranking remains hidden during the walkthrough
+but complete evaluated results stay available in scenario comparison and exports.
+
+Select a node to inspect its incoming `Q` values. Select an edge to inspect
+the engine's actual `S`, `tau`, `R_source`, and `Q`. Primitive `L`/`C` inputs
+continue to take precedence when both are supplied; explicit `S` inputs are
+editable without introducing artificial `L`/`C` values.
+
+When copying this source update into an existing checkout, replace the source
+files while preserving your `.git`, backend `.venv`, frontend `node_modules`, and
+local environment settings. Restart the backend and frontend together: the new
+walkthrough requires the backend's additive `trace` and `topological_order`
+response fields. Existing browser-local scenarios remain compatible and are
+reevaluated on load. The model dependency and calculation engine are unchanged.
 
 ## Scenario comparison workflow
 
