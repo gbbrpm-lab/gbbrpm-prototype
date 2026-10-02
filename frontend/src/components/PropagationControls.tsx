@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import type { useWalkthrough } from "../useWalkthrough";
+import { useResizablePanel } from "../useResizablePanel";
+import { PANEL_HEIGHT_MAX, PANEL_HEIGHT_MIN } from "../panelSize";
 import { walkthroughFrame, type LiveNode } from "../walkthrough";
 import { stepMark } from "../timeline";
 
@@ -14,9 +17,18 @@ function runningRisk(node: LiveNode, now: number): number {
   return 1 - (1 - node.step.B) * product;
 }
 
-export function PropagationControls({ playback }: { playback: ReturnType<typeof useWalkthrough> }) {
+export function PropagationControls({
+  playback,
+  height,
+  onHeightChange,
+}: {
+  playback: ReturnType<typeof useWalkthrough>;
+  height: number;
+  onHeightChange: (next: number) => void;
+}) {
   const { timeline, clockRef, playing, active, reducedMotion, speed, setSpeed, seek, toggle } = playback;
   const [now, setNow] = useState(() => clockRef.current);
+  const { panelRef, dragging, maximized, toggleMaximize, resizeHandlers } = useResizablePanel(height, onHeightChange);
 
   useEffect(() => {
     if (!active) return;
@@ -29,16 +41,43 @@ export function PropagationControls({ playback }: { playback: ReturnType<typeof 
     return () => window.cancelAnimationFrame(raf);
   }, [active, clockRef]);
 
-  const view = walkthroughFrame(timeline, now);
+  const view = useMemo(() => walkthroughFrame(timeline, now), [timeline, now]);
   const duration = timeline.duration;
   const complete = view.complete;
   const idle = !complete && view.transfers.length === 0 && view.exploring.length === 0;
 
   return (
-    <section className="propagation-panel" aria-label="Evaluation walkthrough">
+    <section
+      className="propagation-panel"
+      id="walkthrough-panel"
+      ref={panelRef}
+      style={{ height }}
+      aria-label="Evaluation walkthrough"
+    >
+      <div
+        className={dragging ? "walkthrough-resizer dragging" : "walkthrough-resizer"}
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize evaluation walkthrough"
+        aria-controls="walkthrough-panel"
+        aria-valuenow={height}
+        aria-valuemin={PANEL_HEIGHT_MIN}
+        aria-valuemax={PANEL_HEIGHT_MAX}
+        tabIndex={0}
+        {...resizeHandlers}
+      />
       <div className="playback-toolbar">
         <strong>Evaluation walkthrough</strong>
         <span>{(now / 1000).toFixed(1)}s / {(duration / 1000).toFixed(1)}s</span>
+        <button
+          type="button"
+          className="panel-expand"
+          onClick={toggleMaximize}
+          aria-label={maximized ? "Restore walkthrough height" : "Maximize walkthrough height"}
+          aria-pressed={maximized}
+        >
+          {maximized ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+        </button>
         <div className="playback-buttons">
           <button onClick={() => seek(stepMark(timeline, now, -1))} disabled={now <= 0}>Previous</button>
           <button onClick={toggle}>{playing ? "Pause" : complete ? "Replay" : "Play"}</button>

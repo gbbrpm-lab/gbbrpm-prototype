@@ -58,7 +58,17 @@ real infrastructure observations.
    progress bar tracks seconds elapsed. **Restart**
    returns to the beginning paused; **Skip to results** reveals the final graph
    and ranking. **Replay last evaluation** needs no new API call.
-5. Editing parameters or changing datasets cancels the walkthrough. Existing
+5. Resize the step panel by dragging the grip on its top edge, exactly like the
+   VS Code terminal: the bottom edge stays pinned to the status bar and the
+   panel grows upward while the graph above gives up the space. It stretches all
+   the way until it covers the graph area completely, the way the VS Code
+   terminal can cover the editor. The grip is also focusable — arrow keys step
+   by 16 px, shift-arrow by 64 px, and Home/End jump to the smallest height and
+   full coverage. Double-click the grip or press Enter to reset to the default,
+   or use the chevron in the toolbar to toggle full coverage. The chosen height
+   is remembered in local storage; on short windows the stage scrolls and the
+   panel's bottom edge stays pinned regardless.
+6. Editing parameters or changing datasets cancels the walkthrough. Existing
    stale-result warnings still apply until a fresh evaluation completes.
 
 This animation represents a valid topological **calculation order**, not

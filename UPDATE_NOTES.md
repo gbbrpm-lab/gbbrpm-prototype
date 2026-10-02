@@ -15,6 +15,13 @@
 - Ranking selection also selects and centers the graph node.
 - Inspector remains available on narrow screens.
 - Reduced-motion support; parameter edits and dataset changes cancel playback.
+- Resizable step panel: VS Code-style drag grip on the top edge, focusable
+  separator with arrow/Home/End keys, double-click reset, maximize chevron, and
+  a height remembered in local storage. The panel is bottom-anchored and
+  stretches upward until it covers the whole graph area like the VS Code
+  terminal covers the editor; the graph collapses to nothing and Cytoscape
+  reflows through the existing `ResizeObserver`, which now skips zero-height
+  containers.
 
 ## Applying the update
 
@@ -34,10 +41,11 @@ separately before renaming the prototype.
 
 - Backend: 9 tests passed, including the frozen N5 outlet risk and deterministic
   traces for every N1–N5 network.
-- Frontend: 11 tests passed, covering saved-scenario compatibility, playback
-  state, convergence reveal order, and calculation-panel values.
+- Frontend: 26 tests passed, covering saved-scenario compatibility, playback
+  state, convergence reveal order, calculation-panel values, and panel-height
+  clamping and persistence.
 - Production TypeScript/Vite build: passed. Vite reports a non-blocking bundle
-  size warning (main JavaScript chunk approximately 631 kB).
+  size warning (main JavaScript chunk approximately 639 kB).
 - Tests used the exact GBBRPM engine bundled in the uploaded Windows environment,
   with fresh Linux test dependencies. Your Windows virtual environment was not
   modified or executed.

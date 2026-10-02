@@ -21,6 +21,7 @@ import { walkthroughFrame } from "./walkthrough";
 import { SavedScenarios } from "./components/SavedScenarios";
 import { ScenarioComparison } from "./components/ScenarioComparison";
 import { exportAnalysisManifest, exportComparisonCsv } from "./exports";
+import { loadPanelHeight, persistPanelHeight } from "./panelSize";
 import {
   createSavedScenario,
   loadSavedScenarios,
@@ -71,10 +72,16 @@ export default function App() {
   const skipSyntheticLoadRef = useRef(false);
   const [animateEvaluation, setAnimateEvaluation] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [walkthroughHeight, setWalkthroughHeight] = useState(() => loadPanelHeight(window.localStorage));
   const playback = useWalkthrough();
   const { start: startWalkthrough, cancel: cancelWalkthrough } = playback;
   const frame = useMemo(() => walkthroughFrame(playback.timeline, playback.time), [playback.timeline, playback.time]);
   const walkthroughPending = playback.active && playback.time < playback.timeline.duration;
+
+  const setWalkthroughPanelHeight = useCallback((next: number) => {
+    setWalkthroughHeight(next);
+    persistPanelHeight(window.localStorage, next);
+  }, []);
 
   useEffect(() => { cancelWalkthrough(); }, [dataset, cancelWalkthrough]);
 
@@ -535,7 +542,13 @@ export default function App() {
               }}
             />
           )}
-          {activeView === "network" && playback.active && <PropagationControls playback={playback} />}
+          {activeView === "network" && playback.active && (
+            <PropagationControls
+              playback={playback}
+              height={walkthroughHeight}
+              onHeightChange={setWalkthroughPanelHeight}
+            />
+          )}
           <div className="statusbar"><Activity size={14} /> {status}</div>
         </section>
 

@@ -165,7 +165,9 @@ export function GraphCanvas({ dataset, evaluation, onSelect, selection, walkthro
     let resizeTimer = 0;
     const observer = new ResizeObserver(() => {
       window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => cy.resize(), 260);
+      resizeTimer = window.setTimeout(() => {
+        if (containerRef.current?.clientHeight) cy.resize();
+      }, 260);
     });
     observer.observe(containerRef.current);
 
