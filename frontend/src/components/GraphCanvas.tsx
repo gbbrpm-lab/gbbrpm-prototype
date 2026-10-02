@@ -162,7 +162,18 @@ export function GraphCanvas({ dataset, evaluation, onSelect, selection, walkthro
     });
     instanceRef.current = cy;
 
-    return () => cy.destroy();
+    let resizeFrame = 0;
+    const observer = new ResizeObserver(() => {
+      window.cancelAnimationFrame(resizeFrame);
+      resizeFrame = window.requestAnimationFrame(() => cy.resize());
+    });
+    observer.observe(containerRef.current);
+
+    return () => {
+      observer.disconnect();
+      window.cancelAnimationFrame(resizeFrame);
+      cy.destroy();
+    };
   }, [topologyKey, onSelect]);
 
   useEffect(() => {

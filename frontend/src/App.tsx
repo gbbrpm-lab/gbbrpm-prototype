@@ -1,6 +1,8 @@
 import {
   Activity,
   BookmarkCheck,
+  ChevronLeft,
+  ChevronRight,
   Database,
   FileUp,
   GitCompareArrows,
@@ -68,6 +70,7 @@ export default function App() {
   const fileRef = useRef<HTMLInputElement>(null);
   const skipSyntheticLoadRef = useRef(false);
   const [animateEvaluation, setAnimateEvaluation] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const playback = useWalkthrough();
   const { start: startWalkthrough, cancel: cancelWalkthrough } = playback;
   const frame = useMemo(() => walkthroughFrame(playback.timeline, playback.time), [playback.timeline, playback.time]);
@@ -347,9 +350,22 @@ export default function App() {
         <div className="model-chip"><ShieldCheck size={15} /> Engine v0.1.0</div>
       </header>
 
-      <main className="workspace">
-        <aside className="left-panel panel">
-          <p className="eyebrow">Data source</p>
+      <main className={`workspace${sidebarOpen ? "" : " sidebar-collapsed"}`}>
+        <div className="left-panel-slot">
+          <button
+            type="button"
+            className="sidebar-toggle"
+            aria-controls="data-source-panel"
+            aria-expanded={sidebarOpen}
+            aria-label={sidebarOpen ? "Collapse data source panel" : "Expand data source panel"}
+            title={sidebarOpen ? "Collapse data source panel" : "Expand data source panel"}
+            onClick={() => setSidebarOpen((open) => !open)}
+          >
+            {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+          </button>
+
+          <aside className="left-panel panel" id="data-source-panel">
+            <p className="eyebrow">Data source</p>
           <div className="mode-list">
             {MODES.map((item) => (
               <button
@@ -429,7 +445,8 @@ export default function App() {
             onRename={renameSavedScenario}
             onDelete={deleteSavedScenario}
           />
-        </aside>
+          </aside>
+        </div>
 
         <section className="center-stage panel">
           <div className="stage-header">
