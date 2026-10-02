@@ -352,18 +352,6 @@ export default function App() {
 
       <main className={`workspace${sidebarOpen ? "" : " sidebar-collapsed"}`}>
         <div className="left-panel-slot">
-          <button
-            type="button"
-            className="sidebar-toggle"
-            aria-controls="data-source-panel"
-            aria-expanded={sidebarOpen}
-            aria-label={sidebarOpen ? "Collapse data source panel" : "Expand data source panel"}
-            title={sidebarOpen ? "Collapse data source panel" : "Expand data source panel"}
-            onClick={() => setSidebarOpen((open) => !open)}
-          >
-            {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-          </button>
-
           <aside className="left-panel panel" id="data-source-panel">
             <p className="eyebrow">Data source</p>
           <div className="mode-list">
@@ -447,6 +435,18 @@ export default function App() {
           />
           </aside>
         </div>
+
+        <button
+          type="button"
+          className="sidebar-toggle"
+          aria-controls="data-source-panel"
+          aria-expanded={sidebarOpen}
+          aria-label={sidebarOpen ? "Collapse data source panel" : "Expand data source panel"}
+          title={sidebarOpen ? "Collapse data source panel" : "Expand data source panel"}
+          onClick={() => setSidebarOpen((open) => !open)}
+        >
+          {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+        </button>
 
         <section className="center-stage panel">
           <div className="stage-header">

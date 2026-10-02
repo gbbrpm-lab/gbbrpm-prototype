@@ -41,10 +41,10 @@ button { color: inherit; }
 .workspace.sidebar-collapsed { grid-template-columns: 0 minmax(500px, 1fr) 300px; }
 .panel { min-height: 0; background: var(--panel); }
 .left-panel, .right-panel { padding: 18px 14px; overflow-y: auto; }
-.left-panel-slot { position: relative; min-width: 0; }
-.left-panel-slot > .left-panel { height: 100%; }
-.left-panel { min-width: 0; border-right: 4px solid #191b1e; transition: padding .24s ease, border-color .24s ease, visibility .24s ease; }
-.workspace.sidebar-collapsed .left-panel { width: 0; min-width: 0; padding: 0; border-right-width: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
+.left-panel-slot { position: relative; min-width: 0; overflow: hidden; }
+.left-panel-slot > .left-panel { height: 100%; width: 270px; }
+.left-panel { border-right: 4px solid #191b1e; transition: opacity .2s ease, visibility 0s; }
+.workspace.sidebar-collapsed .left-panel { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .2s ease, visibility 0s linear .2s; }
 .right-panel { border-left: 4px solid #191b1e; }
 
 .sidebar-toggle { position: absolute; top: 50%; left: 270px; z-index: 5; width: 18px; height: 26px; display: grid; place-items: center; padding: 0; border: 1px solid #596069; border-radius: 3px; background: #232528; color: #c3c7cd; cursor: pointer; transform: translateY(-50%); box-shadow: 0 3px 10px rgba(0, 0, 0, .3); transition: left .24s ease, border-color .15s, color .15s, background .15s; }
@@ -225,6 +225,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 @media (max-width: 1050px) {
   .workspace { height: auto; min-height: calc(100vh - 74px); grid-template-columns: 225px minmax(0, 1fr); transition: none; }
   .workspace.sidebar-collapsed { grid-template-columns: 0 minmax(0, 1fr); }
+  .left-panel-slot > .left-panel { width: 225px; }
   .sidebar-toggle { left: 225px; }
   .workspace.sidebar-collapsed .sidebar-toggle { left: 0; }
   .center-stage { min-height: 750px; }
@@ -236,7 +237,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   .workspace { height: auto; min-height: calc(100vh - 58px); grid-template-columns: 1fr; }
   .workspace.sidebar-collapsed { grid-template-columns: 1fr; }
   .workspace.sidebar-collapsed .left-panel { display: none; }
-  .left-panel-slot { position: static; }
+  .left-panel-slot { position: static; overflow: visible; }
+  .left-panel-slot > .left-panel { width: auto; }
   .sidebar-toggle { left: 0; }
   .left-panel { border-right: 0; border-bottom: 4px solid #191b1e; }
   .stage-header { flex-wrap: wrap; gap: 12px; }
