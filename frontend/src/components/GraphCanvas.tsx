@@ -211,7 +211,6 @@ export function GraphCanvas({ dataset, evaluation, onSelect, selection, walkthro
     const id = selection.type === "node" ? selection.id : `${selection.source}->${selection.target}`;
     const element = cy.getElementById(id);
     element.select();
-    if (element.length && selection.type === "node") cy.center(element);
   }, [topologyKey, selection]);
 
   useEffect(() => {
