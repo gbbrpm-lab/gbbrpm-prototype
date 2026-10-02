@@ -103,7 +103,7 @@ select:focus, .numeric-field input:focus { border-color: var(--blue); }
 .upload-card strong, .empty-card strong { display: block; margin-top: 9px; color: #f0f2f5; font-size: 11px; }
 .upload-card p, .empty-card p { margin: 7px 0 13px; font-size: 9px; line-height: 1.55; }
 
-.center-stage { display: flex; flex-direction: column; min-width: 0; background: #343639; }
+.center-stage { display: flex; flex-direction: column; min-width: 0; overflow-y: auto; background: #343639; }
 .stage-header { min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 18px; border-bottom: 4px solid #1a1c1f; background: #2c2e31; }
 .stage-header .eyebrow { margin-bottom: 5px; color: #65a6ff; }
 .stage-header h1 { margin: 0; font-size: 18px; letter-spacing: -.015em; }
@@ -135,18 +135,18 @@ select:focus, .numeric-field input:focus { border-color: var(--blue); }
 .animation-options button, .playback-buttons button { border: 1px solid #59616c; border-radius: 3px; padding: 6px 9px; background: #262c34; cursor: pointer; font-size: 10px; }
 .animation-options button:hover, .playback-buttons button:hover { border-color: var(--blue); }
 .animation-options button:disabled, .playback-buttons button:disabled { opacity: .4; cursor: not-allowed; }
-.propagation-panel { margin: 0 10px 10px; padding: 12px; border: 1px solid #536579; background: #232a33; }
-.playback-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 11px; }
+.propagation-panel { flex: none; height: 224px; display: flex; flex-direction: column; margin: 0 10px 10px; padding: 12px; border: 1px solid #536579; background: #232a33; overflow: hidden; }
+.playback-toolbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 11px; }
 .playback-toolbar > span { color: #a9bdd4; font: 10px "JetBrains Mono", monospace; }
 .playback-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; width: 100%; }
 .playback-buttons label { display: flex; align-items: center; gap: 5px; font-size: 10px; }
 .playback-buttons select { width: auto; padding: 5px; }
-.propagation-panel progress { width: 100%; height: 5px; margin: 10px 0; accent-color: var(--blue); }
-.step-calculation { min-height: 64px; display: grid; gap: 5px; font-size: 11px; }
+.propagation-panel progress { flex: none; width: 100%; height: 5px; margin: 10px 0; accent-color: var(--blue); }
+.step-calculation { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-auto-rows: min-content; gap: 5px; font-size: 11px; align-content: start; }
 .step-calculation code, .calculation-details code { overflow-wrap: anywhere; font: 10px "JetBrains Mono", monospace; color: #a7cffd; }
 .step-calculation p, .walkthrough-note { margin: 2px 0; color: #a9b4c3; font-size: 10px; line-height: 1.5; }
 .step-calculation .live-step { display: grid; gap: 3px; padding: 6px 8px; border-left: 2px solid var(--blue); background: #1d232b; }
-.walkthrough-note { margin-top: 8px; }
+.walkthrough-note { flex: none; margin-top: 8px; }
 .calculation-details { display: grid; gap: 7px; margin-top: 12px; padding: 10px; border: 1px solid #4e5966; background: #22272e; font-size: 10px; }
 .calculation-details p { margin: 0; line-height: 1.5; color: #b7c4d2; }
 .contribution-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px; }
@@ -158,7 +158,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .legend span { display: flex; align-items: center; gap: 4px; color: #d4d7dc; font-size: 8px; }
 .legend i { width: 7px; height: 7px; border-radius: 50%; }
 .legend .low { background: #31a37c; }.legend .medium { background: #e8c547; }.legend .high { background: #ec8f3a; }.legend .critical { background: #dc493a; }
-.statusbar { height: 31px; flex: none; display: flex; align-items: center; gap: 7px; padding: 0 14px; border-top: 1px solid #4c5055; color: #bbc0c7; background: #282a2d; font: 500 9px "JetBrains Mono", monospace; }
+.statusbar { position: sticky; bottom: 0; z-index: 2; height: 31px; flex: none; display: flex; align-items: center; gap: 7px; padding: 0 14px; border-top: 1px solid #4c5055; color: #bbc0c7; background: #282a2d; font: 500 9px "JetBrains Mono", monospace; }
 .statusbar svg { color: #66a5f8; }
 
 .comparison-view { flex: 1; min-height: 0; overflow: auto; padding: 10px; color: #f5f7fa; background: #343639; }
