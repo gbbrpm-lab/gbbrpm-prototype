@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -95,12 +95,23 @@ class EvaluationSummary(BaseModel):
     edge_count: int
 
 
+class EvaluationStep(BaseModel):
+    """A walkthrough of returned results, not a second model evaluation."""
+
+    type: Literal["source", "transfer", "aggregate"]
+    node: str
+    B: float
+    risk: float
+    contribution: EdgeContribution | None = None
+
+
 class EvaluationResponse(BaseModel):
     dataset_id: str
     mode: DatasetMode
     provenance: str
     risks: list[RiskRecord]
     contributions: list[EdgeContribution]
+    topological_order: list[str] = Field(default_factory=list)
+    trace: list[EvaluationStep] = Field(default_factory=list)
     summary: EvaluationSummary
     metadata: dict[str, Any] = Field(default_factory=dict)
-

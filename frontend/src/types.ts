@@ -56,6 +56,9 @@ export interface EvaluationResponse {
   provenance: string;
   risks: RiskRecord[];
   contributions: EdgeContribution[];
+  // Optional for compatibility with older browser-local saved scenarios.
+  topological_order?: string[];
+  trace?: EvaluationStep[];
   summary: {
     highest_risk_node: string;
     highest_risk: number;
@@ -64,6 +67,14 @@ export interface EvaluationResponse {
     edge_count: number;
   };
   metadata: Record<string, number>;
+}
+
+export interface EvaluationStep {
+  type: "source" | "transfer" | "aggregate";
+  node: string;
+  B: number;
+  risk: number;
+  contribution?: EdgeContribution | null;
 }
 
 export interface ScenarioSnapshot {
