@@ -16,8 +16,8 @@ export function clampPanelHeight(value: number, max: number = PANEL_HEIGHT_MAX):
   return Math.round(Math.min(Math.max(value, PANEL_HEIGHT_MIN), upper));
 }
 
-export function panelHeightLimit(panelHeight: number, graphHeight: number, overflow = 0): number {
-  return clampPanelHeight(Math.floor(panelHeight + graphHeight - Math.max(0, overflow)) - 1);
+export function graphHeightLimit(graphHeight: number): number {
+  return clampPanelHeight(Math.floor(graphHeight) - 1);
 }
 
 export function loadPanelHeight(storage: StorageLike | undefined): number {

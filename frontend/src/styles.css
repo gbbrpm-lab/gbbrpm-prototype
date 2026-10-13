@@ -103,8 +103,8 @@ select:focus, .numeric-field input:focus { border-color: var(--blue); }
 .upload-card strong, .empty-card strong { display: block; margin-top: 9px; color: #f0f2f5; font-size: 11px; }
 .upload-card p, .empty-card p { margin: 7px 0 13px; font-size: 9px; line-height: 1.55; }
 
-.center-stage { display: flex; flex-direction: column; min-width: 0; overflow-y: auto; background: #343639; }
-.stage-header { min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 18px; border-bottom: 4px solid #1a1c1f; background: #2c2e31; }
+.center-stage { display: flex; flex-direction: column; min-width: 0; overflow: hidden; background: #343639; }
+.stage-header { flex: none; min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 18px; border-bottom: 4px solid #1a1c1f; background: #2c2e31; }
 .stage-header .eyebrow { margin-bottom: 5px; color: #65a6ff; }
 .stage-header h1 { margin: 0; font-size: 18px; letter-spacing: -.015em; }
 .stage-header p:last-child { margin: 5px 0 0; max-width: 620px; color: #a3a8b0; font-size: 10px; }
@@ -128,13 +128,13 @@ select:focus, .numeric-field input:focus { border-color: var(--blue); }
 .view-tabs > span { align-self: center; margin-left: auto; padding-right: 4px; color: #7fcb9f; font: 500 8px "JetBrains Mono", monospace; text-transform: uppercase; }
 .graph-frame { position: relative; flex: 1; min-height: 0; margin: 10px; overflow: hidden; border: 8px solid #45484b; box-shadow: inset 0 0 0 1px #c7cbd0, 0 0 0 1px #202225; background-color: var(--canvas); background-image: linear-gradient(rgba(55, 65, 75, .09) 1px, transparent 1px), linear-gradient(90deg, rgba(55, 65, 75, .09) 1px, transparent 1px); background-size: 30px 30px; }
 .graph-canvas { position: absolute; inset: 0; }
-.animation-options { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--line); font-size: 11px; }
+.animation-options { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--line); font-size: 11px; }
 .animation-options label { display: flex; align-items: center; gap: 7px; }
 .animation-options input { accent-color: var(--blue); }
 .animation-options button, .playback-buttons button { border: 1px solid #59616c; border-radius: 3px; padding: 6px 9px; background: #262c34; cursor: pointer; font-size: 10px; }
 .animation-options button:hover, .playback-buttons button:hover { border-color: var(--blue); }
 .animation-options button:disabled, .playback-buttons button:disabled { opacity: .4; cursor: not-allowed; }
-.propagation-panel { flex: none; display: flex; flex-direction: column; margin: 0 10px 10px; padding: 12px; border: 1px solid #536579; background: #232a33; overflow: hidden; }
+.propagation-panel { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; display: flex; flex-direction: column; margin: 0; padding: 12px; border: 1px solid #536579; background: #232a33; overflow: hidden; box-shadow: 0 -10px 26px rgba(0, 0, 0, .34); }
 .walkthrough-resizer { flex: none; display: grid; place-items: center; height: 15px; margin: -12px -12px 5px; border-radius: 2px; cursor: row-resize; touch-action: none; }
 .walkthrough-resizer::before { content: ""; width: 34px; height: 3px; border-radius: 2px; background: #46586b; transition: width .15s, background .15s; }
 .walkthrough-resizer:hover::before, .walkthrough-resizer:focus-visible::before, .walkthrough-resizer.dragging::before { width: 56px; background: var(--blue); }
@@ -152,6 +152,7 @@ select:focus, .numeric-field input:focus { border-color: var(--blue); }
 .step-calculation p, .walkthrough-note { margin: 2px 0; color: #a9b4c3; font-size: 10px; line-height: 1.5; }
 .step-calculation .live-step { display: grid; gap: 3px; padding: 6px 8px; border-left: 2px solid var(--blue); background: #1d232b; }
 .walkthrough-note { flex: none; margin-top: 8px; }
+.walkthrough-note.is-hidden { visibility: hidden; }
 .calculation-details { display: grid; gap: 7px; margin-top: 12px; padding: 10px; border: 1px solid #4e5966; background: #22272e; font-size: 10px; }
 .calculation-details p { margin: 0; line-height: 1.5; color: #b7c4d2; }
 .contribution-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px; }

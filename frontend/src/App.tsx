@@ -528,6 +528,13 @@ export default function App() {
                 <span><i className="high" />High</span>
                 <span><i className="critical" />Very high</span>
               </div>
+              {playback.active && (
+                <PropagationControls
+                  playback={playback}
+                  height={walkthroughHeight}
+                  onHeightChange={setWalkthroughPanelHeight}
+                />
+              )}
             </div>
           ) : (
             <ScenarioComparison
@@ -540,13 +547,6 @@ export default function App() {
                 setSelection({ type: "node", id });
                 setActiveView("network");
               }}
-            />
-          )}
-          {activeView === "network" && playback.active && (
-            <PropagationControls
-              playback={playback}
-              height={walkthroughHeight}
-              onHeightChange={setWalkthroughPanelHeight}
             />
           )}
           <div className="statusbar"><Activity size={14} /> {status}</div>

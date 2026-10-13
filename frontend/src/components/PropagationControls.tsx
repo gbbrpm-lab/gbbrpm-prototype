@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { useWalkthrough } from "../useWalkthrough";
 import { useResizablePanel } from "../useResizablePanel";
 import { PANEL_HEIGHT_MAX, PANEL_HEIGHT_MIN } from "../panelSize";
@@ -7,6 +7,8 @@ import { walkthroughFrame, type LiveNode } from "../walkthrough";
 import { stepMark } from "../timeline";
 
 const fmt = (value: number) => value.toFixed(4);
+
+const useCommitEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 function runningRisk(node: LiveNode, now: number): number {
   let product = 1;
@@ -45,6 +47,25 @@ export function PropagationControls({
   const duration = timeline.duration;
   const complete = view.complete;
   const idle = !complete && view.transfers.length === 0 && view.exploring.length === 0;
+
+  const noteRef = useRef<HTMLParagraphElement>(null);
+  const [noteFits, setNoteFits] = useState(true);
+
+  useCommitEffect(() => {
+    const panel = panelRef.current;
+    const note = noteRef.current;
+    if (!panel || !note) return;
+    const measure = () => {
+      const padding = Number.parseFloat(window.getComputedStyle(panel).paddingBottom) || 0;
+      setNoteFits(note.offsetTop + note.offsetHeight <= panel.clientHeight - padding);
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(panel);
+    observer.observe(note);
+    return () => observer.disconnect();
+  }, [panelRef, complete, reducedMotion]);
 
   return (
     <section
@@ -118,7 +139,7 @@ export function PropagationControls({
           })}
         </>}
       </div>
-      <p className="walkthrough-note">{complete ? "Complete · final results revealed. " : ""}Live calculation order—not physical travel time. Independent branches progress in parallel as contributions arrive.{reducedMotion ? " Reduced motion is enabled; use Next for manual study." : ""}</p>
+      <p ref={noteRef} className={noteFits ? "walkthrough-note" : "walkthrough-note is-hidden"}>{complete ? "Complete · final results revealed. " : ""}Live calculation order—not physical travel time. Independent branches progress in parallel as contributions arrive.{reducedMotion ? " Reduced motion is enabled; use Next for manual study." : ""}</p>
     </section>
   );
 }

@@ -7,11 +7,11 @@ import {
   PANEL_HEIGHT_MIN,
   PANEL_HEIGHT_STEP,
   clampPanelHeight,
-  panelHeightLimit,
+  graphHeightLimit,
 } from "./panelSize";
 
-function stageOf(node: HTMLElement | null) {
-  return node?.closest<HTMLElement>(".center-stage") ?? null;
+function graphOf(node: HTMLElement | null) {
+  return node?.closest<HTMLElement>(".graph-frame") ?? null;
 }
 
 const useCommitEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -25,17 +25,29 @@ export function useResizablePanel(height: number, onChange: (next: number) => vo
 
   useEffect(() => () => endDragRef.current?.(), []);
 
-  useCommitEffect(() => {
-    const stage = stageOf(panelRef.current);
-    if (stage) stage.scrollTop = stage.scrollHeight;
-  }, [height]);
-
   const stageLimit = useCallback(() => {
-    const stage = stageOf(panelRef.current);
-    const graph = stage?.querySelector<HTMLElement>(".graph-frame");
-    if (!stage || !graph) return PANEL_HEIGHT_MAX;
-    return panelHeightLimit(panelRef.current?.offsetHeight ?? height, graph.offsetHeight, stage.scrollHeight - stage.clientHeight);
-  }, [height]);
+    const graph = graphOf(panelRef.current);
+    if (!graph) return PANEL_HEIGHT_MAX;
+    return graphHeightLimit(graph.clientHeight);
+  }, []);
+
+  const clampToGraph = useCallback(() => {
+    const limit = stageLimit();
+    if ((panelRef.current?.offsetHeight ?? 0) > limit) onChange(limit);
+  }, [onChange, stageLimit]);
+
+  // The panel floats over the graph, so a restored height from storage can be
+  // taller than the graph it covers. Clamp it before paint instead of letting
+  // the stage scroll to hide the overflow.
+  useCommitEffect(clampToGraph, [clampToGraph]);
+
+  useCommitEffect(() => {
+    const graph = graphOf(panelRef.current);
+    if (!graph || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => clampToGraph());
+    observer.observe(graph);
+    return () => observer.disconnect();
+  }, [clampToGraph]);
 
   const measuredHeight = useCallback(() => panelRef.current?.offsetHeight ?? height, [height]);
 
