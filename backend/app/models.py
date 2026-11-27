@@ -14,7 +14,7 @@ class NodeRecord(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     id: str = Field(min_length=1)
-    B: float = Field(ge=0.0, le=1.0)
+    B: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
     outlet: bool = False
     label: str | None = None
 
@@ -24,18 +24,28 @@ class EdgeRecord(BaseModel):
 
     source: str = Field(min_length=1)
     target: str = Field(min_length=1)
-    L: float | None = Field(default=None, ge=0.0)
-    C: float | None = Field(default=None, gt=0.0)
-    S: float | None = Field(default=None, ge=0.0, le=1.0)
-    tau: float = Field(default=1.0, ge=0.0, le=1.0)
+    L: float | None = Field(default=None, ge=0.0, allow_inf_nan=False)
+    C: float | None = Field(default=None, gt=0.0, allow_inf_nan=False)
+    S: float | None = Field(default=None, ge=0.0, le=1.0, allow_inf_nan=False)
+    tau: float = Field(default=1.0, ge=0.0, le=1.0, allow_inf_nan=False)
 
     @model_validator(mode="after")
     def require_susceptibility_input(self):
-        has_primitives = self.L is not None and self.C is not None
-        if self.S is None and not has_primitives:
-            raise ValueError("Provide S or both L and C")
-        if (self.L is None) != (self.C is None):
+        has_s = self.S is not None
+        has_l = self.L is not None
+        has_c = self.C is not None
+        has_any_primitive = has_l or has_c
+        has_both_primitives = has_l and has_c
+
+        if has_s and has_any_primitive:
+            raise ValueError(
+                "Ambiguous edge susceptibility input: provide either explicit S "
+                "or primitive L and C, not both"
+            )
+        if has_l != has_c:
             raise ValueError("L and C must be provided together")
+        if not has_s and not has_both_primitives:
+            raise ValueError("Provide S or both L and C")
         return self
 
 
