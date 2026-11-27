@@ -27,10 +27,73 @@ The backend uses the tagged model implementation from
 - Named scenario save/load with exact inputs, evaluated outputs, and model metadata
 - Browser-local scenario rename, deletion, and baseline promotion
 - Pinned GBBRPM `v0.1.0` dependency
+- Optional evaluation walkthrough with continuous pipelined edge pulses, smooth
+  node/edge transitions, persistent flowing edge dashes, and a live calculation panel
+- Play/pause, event-boundary previous/next, speed, restart, replay, and skip-to-results controls
+- Incoming-contribution inspection and backend-derived susceptibility values
+- Explicit `S` editing for imported networks without `L`/`C`
+- Synchronized graph selection from the ranking and comparison views
+- Inspector and ranking remain accessible below the graph on narrow screens
 
 Operational mode is intentionally inactive until an agency dataset is mapped
 and documented. This prevents demonstration fixtures from being mistaken for
 real infrastructure observations.
+
+## Evaluation walkthrough
+
+1. Enable **Animate evaluation after Run**, then click **Run model**. Initial
+   dataset loading remains instant; animation is off by default.
+2. Each node starts the moment its predecessors settle. Contributions travel
+   along their edges as continuous pulses while other branches already advance,
+   so independent paths progress in parallel on one live clock instead of
+   snapping through layers. Nodes that become ready together are staggered
+   slightly so the frontier spreads visibly. An edge that starts transmitting
+   keeps its flowing dashes for the rest of the walkthrough, so established
+   channels stay visibly in motion until the walkthrough is closed.
+3. Read the step panel for `Q = S × tau × R_source` and
+   `R = 1 − (1 − B) × product(1 − Q)`. Both values tick up live while the step
+   computes and land exactly on the backend engine's outputs when it settles;
+   the frontend does not evaluate the model again.
+4. Pause or use **Previous**/**Next** to jump between event boundaries; the
+   progress bar tracks seconds elapsed. **Restart**
+   returns to the beginning paused; **Skip to results** reveals the final graph
+   and ranking. **Replay last evaluation** needs no new API call.
+5. Resize the step panel by dragging the grip on its top edge, exactly like the
+   VS Code terminal: the bottom edge stays pinned to the status bar and the
+   panel grows upward while the graph above gives up the space. It stretches all
+   the way until it covers the graph area completely, the way the VS Code
+   terminal can cover the editor. The grip is also focusable — arrow keys step
+   by 16 px, shift-arrow by 64 px, and Home/End jump to the smallest height and
+   full coverage. Double-click the grip or press Enter to reset to the default,
+   or use the chevron in the toolbar to toggle full coverage. The chosen height
+   is remembered in local storage; on short windows the stage scrolls and the
+   panel's bottom edge stays pinned regardless.
+6. Editing parameters or changing datasets cancels the walkthrough. Existing
+   stale-result warnings still apply until a fresh evaluation completes.
+
+This animation represents a valid topological **calculation order**, not
+physical travel time, flow speed, or stochastic event timing. Independent
+branches advance in parallel because neither depends on the other; this
+simultaneity does not imply that two physical branches travel at the same speed.
+At convergence, every
+incoming contribution is shown before the target is revealed. A zero-valued
+contribution is still a calculation step, not a positive transfer of risk.
+
+Reduced-motion preferences suppress moving edge dashes and start the walkthrough
+paused for manual navigation. Final ranking remains hidden during the walkthrough
+but complete evaluated results stay available in scenario comparison and exports.
+
+Select a node to inspect its incoming `Q` values. Select an edge to inspect
+the engine's actual `S`, `tau`, `R_source`, and `Q`. Primitive `L`/`C` inputs
+continue to take precedence when both are supplied; explicit `S` inputs are
+editable without introducing artificial `L`/`C` values.
+
+When copying this source update into an existing checkout, replace the source
+files while preserving your `.git`, backend `.venv`, frontend `node_modules`, and
+local environment settings. Restart the backend and frontend together: the new
+walkthrough requires the backend's additive `trace` and `topological_order`
+response fields. Existing browser-local scenarios remain compatible and are
+reevaluated on load. The model dependency and calculation engine are unchanged.
 
 ## Scenario comparison workflow
 
@@ -107,6 +170,9 @@ gbbrpm-prototype/
 │   └── vite.config.ts
 ├── examples/
 │   └── imported-network.json
+├── scripts/
+│   └── dev.mjs
+├── package.json
 └── README.md
 ```
 
@@ -116,7 +182,62 @@ gbbrpm-prototype/
 - Node.js 20 or newer
 - Git, because the backend installs the tagged model from GitHub
 
-## Backend setup
+## Quick start
+
+One-time setup is required before the first run: the backend needs its virtual
+environment and Python packages, and the frontend needs its npm packages.
+
+### One-time setup
+
+```powershell
+# backend (from the repository root)
+cd backend
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+cd ..
+
+# frontend
+cd frontend
+npm install
+cd ..
+```
+
+On WSL / Ubuntu use `python3 -m venv .venv`, `source .venv/bin/activate`, and
+`pip install -r requirements-dev.txt` instead.
+
+### Run both together
+
+```bash
+npm run dev
+```
+
+This single command starts the backend and the frontend with prefixed log
+output:
+
+| Service | URL |
+| --- | --- |
+| Frontend | `http://localhost:5173` |
+| Backend API | `http://localhost:8000` |
+| API documentation | `http://localhost:8000/docs` |
+
+Press `Ctrl+C` once to stop both processes.
+
+Other root commands:
+
+```bash
+npm run dev:backend    # backend only
+npm run dev:frontend   # frontend only
+npm run build          # production build (tsc -b && vite build)
+npm run preview        # preview the production build
+npm run test           # frontend unit tests
+```
+
+The root `npm run dev` expects `frontend/node_modules` to exist (run
+`npm install` in `frontend/` once) and a backend virtual environment at
+`backend/.venv` (created during one-time setup).
+
+## Backend setup (manual)
 
 ### Windows PowerShell
 
@@ -147,7 +268,7 @@ Run backend tests from `backend/`:
 python -m pytest -q
 ```
 
-## Frontend setup
+## Frontend setup (manual)
 
 In another terminal:
 

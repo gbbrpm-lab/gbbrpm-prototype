@@ -1,6 +1,8 @@
 import {
   Activity,
   BookmarkCheck,
+  ChevronLeft,
+  ChevronRight,
   Database,
   FileUp,
   GitCompareArrows,
@@ -13,9 +15,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "./api";
 import { GraphCanvas } from "./components/GraphCanvas";
+import { PropagationControls } from "./components/PropagationControls";
+import { useWalkthrough } from "./useWalkthrough";
+import { walkthroughFrame } from "./walkthrough";
 import { SavedScenarios } from "./components/SavedScenarios";
 import { ScenarioComparison } from "./components/ScenarioComparison";
 import { exportAnalysisManifest, exportComparisonCsv } from "./exports";
+import { loadPanelHeight, persistPanelHeight } from "./panelSize";
 import {
   createSavedScenario,
   loadSavedScenarios,
@@ -64,8 +70,23 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const skipSyntheticLoadRef = useRef(false);
+  const [animateEvaluation, setAnimateEvaluation] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [walkthroughHeight, setWalkthroughHeight] = useState(() => loadPanelHeight(window.localStorage));
+  const playback = useWalkthrough();
+  const { start: startWalkthrough, cancel: cancelWalkthrough } = playback;
+  const frame = useMemo(() => walkthroughFrame(playback.timeline, playback.time), [playback.timeline, playback.time]);
+  const walkthroughPending = playback.active && playback.time < playback.timeline.duration;
 
-  const runEvaluation = useCallback(async (payload: DatasetPayload, captureBaseline = false) => {
+  const setWalkthroughPanelHeight = useCallback((next: number) => {
+    setWalkthroughHeight(next);
+    persistPanelHeight(window.localStorage, next);
+  }, []);
+
+  useEffect(() => { cancelWalkthrough(); }, [dataset, cancelWalkthrough]);
+
+  const runEvaluation = useCallback(async (payload: DatasetPayload, captureBaseline = false, animate = false) => {
+    cancelWalkthrough();
     setBusy(true);
     setStatus("Evaluating directed network…");
     try {
@@ -79,6 +100,7 @@ export default function App() {
         });
       }
       setDirty(false);
+      if (animate) startWalkthrough(result.trace ?? [], !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
       setStatus(`Evaluation complete · ${result.risks.length} ranked nodes`);
       return result;
     } catch (error) {
@@ -88,7 +110,7 @@ export default function App() {
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [startWalkthrough, cancelWalkthrough]);
 
   useEffect(() => {
     api.listDatasets()
@@ -138,8 +160,13 @@ export default function App() {
             edge.source === selection.source && edge.target === selection.target,
         )
       : undefined;
+  const selectedContribution = selectedEdge ? evaluation?.contributions.find((edge) =>
+    edge.source === selectedEdge.source && edge.target === selectedEdge.target) : undefined;
+  const selectedIncoming = selectedNode ? evaluation?.contributions.filter((edge) => edge.target === selectedNode.id) ?? [] : [];
+  const selectedNodePending = Boolean(selectedNode && walkthroughPending && !frame.revealedNodes.has(selectedNode.id));
 
   function selectMode(nextMode: DatasetMode) {
+    cancelWalkthrough();
     setMode(nextMode);
     setEvaluation(null);
     setBaseline(null);
@@ -168,8 +195,9 @@ export default function App() {
     setStatus("Scenario modified · run the model to update results");
   }
 
-  function updateEdge(field: "L" | "C" | "tau", value: number) {
+  function updateEdge(field: "L" | "C" | "tau" | "S", value: number) {
     if (!dataset || !selectedEdge) return;
+    if (!Number.isFinite(value) || value < 0 || (field === "C" && value <= 0) || ((field === "tau" || field === "S") && value > 1)) return;
     setDataset({
       ...dataset,
       edges: dataset.edges.map((edge) =>
@@ -321,7 +349,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand-mark"><Network size={21} /></div>
+        <div className="brand-mark"><img src="/favicon.png" alt="GBBRPM" /></div>
         <div className="brand-copy">
           <strong>GBBRPM</strong>
           <span>Risk propagation workspace</span>
@@ -329,14 +357,16 @@ export default function App() {
         <div className="model-chip"><ShieldCheck size={15} /> Engine v0.1.0</div>
       </header>
 
-      <main className="workspace">
-        <aside className="left-panel panel">
-          <p className="eyebrow">Data source</p>
+      <main className={`workspace${sidebarOpen ? "" : " sidebar-collapsed"}`}>
+        <div className="left-panel-slot">
+          <aside className="left-panel panel" id="data-source-panel">
+            <p className="eyebrow">Data source</p>
           <div className="mode-list">
             {MODES.map((item) => (
               <button
                 className={`mode-button ${mode === item.id ? "active" : ""}`}
                 key={item.id}
+                disabled={busy}
                 onClick={() => selectMode(item.id)}
               >
                 {item.id === "imported" ? <FileUp size={17} /> : <Database size={17} />}
@@ -351,6 +381,7 @@ export default function App() {
               <select
                 id="network-select"
                 value={selectedId}
+                disabled={busy}
                 onChange={(event) => setSelectedId(event.target.value)}
               >
                 {summaries.map((item) => (
@@ -409,7 +440,20 @@ export default function App() {
             onRename={renameSavedScenario}
             onDelete={deleteSavedScenario}
           />
-        </aside>
+          </aside>
+        </div>
+
+        <button
+          type="button"
+          className="sidebar-toggle"
+          aria-controls="data-source-panel"
+          aria-expanded={sidebarOpen}
+          aria-label={sidebarOpen ? "Collapse data source panel" : "Expand data source panel"}
+          title={sidebarOpen ? "Collapse data source panel" : "Expand data source panel"}
+          onClick={() => setSidebarOpen((open) => !open)}
+        >
+          {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+        </button>
 
         <section className="center-stage panel">
           <div className="stage-header">
@@ -428,19 +472,26 @@ export default function App() {
                 >
                   <BookmarkCheck size={15} /> Save baseline
                 </button>
-                <button className="icon-button" title="Reset dataset" onClick={resetDataset}>
+                <button className="icon-button" disabled={busy} title="Reset to loaded dataset" onClick={resetDataset}>
                   <RotateCcw size={17} />
                 </button>
                 <button
                   className="primary-button"
                   disabled={busy}
-                  onClick={() => void runEvaluation(dataset)}
+                  onClick={() => { setActiveView("network"); void runEvaluation(dataset, false, animateEvaluation); }}
                 >
                   <Play size={16} fill="currentColor" /> {busy ? "Running…" : "Run model"}
                 </button>
               </div>
             )}
           </div>
+
+          {dataset && <div className="animation-options">
+            <label><input type="checkbox" checked={animateEvaluation} disabled={busy} onChange={(event) => { setAnimateEvaluation(event.target.checked); if (!event.target.checked) cancelWalkthrough(); }} /> Animate evaluation after Run</label>
+            <button disabled={busy || dirty || !evaluation?.trace?.length} onClick={() => {
+              setActiveView("network"); startWalkthrough(evaluation?.trace ?? [], !playback.reducedMotion);
+            }}>Replay last evaluation</button>
+          </div>}
 
           <div className="view-tabs" role="tablist" aria-label="Analysis view">
             <button
@@ -465,16 +516,25 @@ export default function App() {
           {activeView === "network" ? (
             <div className="graph-frame">
               {dataset ? (
-                <GraphCanvas dataset={dataset} evaluation={evaluation} onSelect={setSelection} />
+                <GraphCanvas dataset={dataset} evaluation={evaluation} onSelect={setSelection} selection={selection}
+                  walkthrough={playback.active ? { ...frame, playing: playback.playing, reducedMotion: playback.reducedMotion } : null} />
               ) : (
                 <div className="graph-empty"><Network size={35} /><span>No graph loaded</span></div>
               )}
               <div className="legend">
+                {playback.active && <span><i className="pending" />Pending</span>}
                 <span><i className="low" />Low</span>
                 <span><i className="medium" />Moderate</span>
                 <span><i className="high" />High</span>
                 <span><i className="critical" />Very high</span>
               </div>
+              {playback.active && (
+                <PropagationControls
+                  playback={playback}
+                  height={walkthroughHeight}
+                  onHeightChange={setWalkthroughPanelHeight}
+                />
+              )}
             </div>
           ) : (
             <ScenarioComparison
@@ -501,45 +561,59 @@ export default function App() {
               <input
                 type="range" min="0" max="1" step="0.05"
                 value={selectedNode.B}
+                disabled={busy}
                 onChange={(event) => updateNodeB(Number(event.target.value))}
               />
               <div className={`metric-card ${dirty ? "stale" : ""}`}>
                 <span>{dirty ? "Propagated risk · last run" : "Propagated risk"}</span>
-                <strong>{fmt(riskMap.get(selectedNode.id) ?? selectedNode.B)}</strong>
+                <strong>{selectedNodePending ? "Pending" : fmt(riskMap.get(selectedNode.id) ?? selectedNode.B)}</strong>
               </div>
+              {evaluation && !selectedNodePending && <div className={`calculation-details ${dirty ? "stale" : ""}`}>
+                <strong>{dirty ? "Aggregation · last run" : "Aggregation"}</strong>
+                <code>R = 1 − (1 − B) × ∏(1 − Q)</code>
+                <p>B = {fmt(evaluation.risks.find((item) => item.id === selectedNode.id)?.local_disturbance ?? selectedNode.B)}</p>
+                {selectedIncoming.length ? selectedIncoming.map((edge) => <div key={edge.source} className="contribution-row"><span>{edge.source} → {edge.target}</span><code>Q = {fmt(edge.Q)}</code></div>) : <p>No predecessors: empty product = 1, so R = B.</p>}
+              </div>}
               {selectedNode.outlet && <div className="outlet-badge">Declared outlet</div>}
             </div>
           ) : selectedEdge ? (
             <div className="inspector">
               <div className="selection-title"><span>Edge</span><strong>{selectedEdge.source} → {selectedEdge.target}</strong></div>
-              {(["L", "C", "tau"] as const).map((field) => (
+              {(selectedEdge.L != null && selectedEdge.C != null ? ["L", "C", "tau"] as const : ["S", "tau"] as const).map((field) => (
                 <label className="numeric-field" key={field}>
-                  <span>{field === "L" ? "Load L" : field === "C" ? "Capacity C" : "Transmission τ"}</span>
+                  <span>{field === "L" ? "Load L" : field === "C" ? "Capacity C" : field === "S" ? "Explicit susceptibility S" : "Transmission τ"}</span>
                   <input
                     type="number"
                     min={field === "C" ? 0.01 : 0}
-                    max={field === "tau" ? 1 : undefined}
-                    step={field === "tau" ? 0.05 : 1}
+                    max={field === "tau" || field === "S" ? 1 : undefined}
+                    step={field === "tau" || field === "S" ? 0.05 : 1}
                     value={selectedEdge[field] ?? ""}
-                    onChange={(event) => updateEdge(field, Number(event.target.value))}
+                    disabled={busy}
+                    onChange={(event) => { if (event.target.value !== "") updateEdge(field, Number(event.target.value)); }}
                   />
                 </label>
               ))}
-              <div className="metric-card">
-                <span>Derived susceptibility</span>
-                <strong>{fmt(Math.min(1, (selectedEdge.L ?? 0) / (selectedEdge.C ?? 1)))}</strong>
+              <div className={`metric-card ${dirty ? "stale" : ""}`}>
+                <span>{selectedEdge.L != null ? "Derived susceptibility" : "Explicit susceptibility"}{dirty ? " · last run" : ""}</span>
+                <strong>{selectedContribution ? fmt(selectedContribution.S) : "Not evaluated"}</strong>
               </div>
+              {selectedContribution && (!walkthroughPending || frame.revealedEdges.has(`${selectedEdge.source}->${selectedEdge.target}`)) && <div className={`calculation-details ${dirty ? "stale" : ""}`}>
+                <strong>{dirty ? "Contribution · last run" : "Edge contribution"}</strong>
+                <code>Q = S × τ × R_source</code>
+                <p>{fmt(selectedContribution.S)} × {fmt(selectedContribution.tau)} × {fmt(selectedContribution.R_source)} = {fmt(selectedContribution.Q)}</p>
+              </div>}
             </div>
           ) : (
             <div className="inspector-empty">Select a node or edge to inspect and modify its parameters.</div>
           )}
 
           <div className="ranking-header">
-            <div><p className="eyebrow">Risk ranking</p><span>{dirty ? "Last evaluation · rerun required" : "Current evaluation"}</span></div>
+            <div><p className="eyebrow">Risk ranking</p><span>{walkthroughPending ? "Revealed after walkthrough" : dirty ? "Last evaluation · rerun required" : "Current evaluation"}</span></div>
             <strong>{evaluation?.risks.length ?? 0}</strong>
           </div>
           <div className="ranking-list">
-            {evaluation?.risks.map((item) => (
+            {walkthroughPending && <p className="inspector-empty">Finish the walkthrough or skip to results to see the final ranking.</p>}
+            {!walkthroughPending && evaluation?.risks.map((item) => (
               <button key={item.id} onClick={() => setSelection({ type: "node", id: item.id })}>
                 <span className="rank">{item.rank}</span>
                 <strong>{item.id}</strong>

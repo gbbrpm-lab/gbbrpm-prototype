@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+import pytest
 
 from app.main import app
 
@@ -65,3 +66,32 @@ def test_valid_explicit_s_import_uses_shared_evaluation_path():
     result = response.json()
     assert abs(result["summary"]["outlet_risks"]["C"] - 0.28) < 1e-12
     assert result["mode"] == "imported"
+
+
+@pytest.mark.parametrize("dataset_id", ["N1", "N2", "N3", "N4", "N5"])
+def test_trace_is_deterministic_and_matches_engine_results(dataset_id):
+    dataset = client.get(f"/api/datasets/{dataset_id}").json()
+    result = client.post("/api/evaluate", json=dataset).json()
+    assert result == client.post("/api/evaluate", json=dataset).json()
+    risks = {row["id"]: row for row in result["risks"]}
+    order = result["topological_order"]
+    assert len(result["trace"]) == len(dataset["nodes"]) + len(dataset["edges"])
+    evaluated = set()
+    transferred = []
+    for step in result["trace"]:
+        assert step["risk"] == risks[step["node"]]["risk"]
+        assert step["B"] == risks[step["node"]]["local_disturbance"]
+        if step["type"] == "transfer":
+            edge = step["contribution"]
+            assert edge["source"] in evaluated
+            assert step["node"] == edge["target"]
+            assert order.index(edge["source"]) < order.index(edge["target"])
+            assert edge in result["contributions"]
+            transferred.append(edge)
+        else:
+            incoming = [edge for edge in result["contributions"] if edge["target"] == step["node"]]
+            assert all(edge in transferred for edge in incoming)
+            assert step["type"] == ("aggregate" if incoming else "source")
+            evaluated.add(step["node"])
+    assert evaluated == set(order)
+    assert transferred == result["contributions"]

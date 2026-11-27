@@ -9,6 +9,7 @@ from app.models import (
     EdgeContribution,
     EvaluationResponse,
     EvaluationSummary,
+    EvaluationStep,
     RiskRecord,
     ValidationResponse,
 )
@@ -106,6 +107,19 @@ def evaluate_dataset(dataset: DatasetPayload) -> EvaluationResponse:
     outlet_risks = {
         node.id: float(risks[node.id]) for node in dataset.nodes if node.outlet
     }
+    # Read the engine's computed values; never duplicate its formula here.
+    incoming = {node_id: [] for node_id in validation.topological_order}
+    for contribution in contributions:
+        incoming[contribution.target].append(contribution)
+    trace = []
+    for node_id in validation.topological_order:
+        common = {"node": node_id, "B": nodes_by_id[node_id].B,
+                  "risk": float(risks[node_id])}
+        for contribution in incoming[node_id]:
+            trace.append(EvaluationStep(type="transfer", contribution=contribution, **common))
+        trace.append(EvaluationStep(
+            type="aggregate" if incoming[node_id] else "source", **common,
+        ))
 
     return EvaluationResponse(
         dataset_id=dataset.id,
@@ -113,6 +127,8 @@ def evaluate_dataset(dataset: DatasetPayload) -> EvaluationResponse:
         provenance=dataset.source_note or f"{dataset.mode.value} dataset",
         risks=risk_records,
         contributions=contributions,
+        topological_order=validation.topological_order,
+        trace=trace,
         summary=EvaluationSummary(
             highest_risk_node=ranked[0][0],
             highest_risk=float(ranked[0][1]),
@@ -125,4 +141,3 @@ def evaluate_dataset(dataset: DatasetPayload) -> EvaluationResponse:
             "outlet_count": validation.outlet_count,
         },
     )
-
