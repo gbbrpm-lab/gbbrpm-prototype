@@ -1,5 +1,11 @@
-from fastapi import FastAPI, HTTPException
+import math
+from typing import Any
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.models import (
     DatasetPayload,
@@ -23,6 +29,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _sanitize_nonfinite(value: Any) -> Any:
+    if isinstance(value, float) and not math.isfinite(value):
+        if math.isnan(value):
+            return "NaN"
+        return "Infinity" if value > 0 else "-Infinity"
+    if isinstance(value, dict):
+        return {k: _sanitize_nonfinite(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_sanitize_nonfinite(item) for item in value]
+    return value
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    _request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    sanitized = _sanitize_nonfinite(jsonable_encoder(exc.errors()))
+    return JSONResponse(status_code=422, content={"detail": sanitized})
 
 
 @app.get("/api/health")

@@ -95,3 +95,118 @@ def test_trace_is_deterministic_and_matches_engine_results(dataset_id):
             evaluated.add(step["node"])
     assert evaluated == set(order)
     assert transferred == result["contributions"]
+
+
+@pytest.mark.parametrize(
+    "endpoint", ["/api/datasets/validate", "/api/evaluate"]
+)
+@pytest.mark.parametrize(
+    "raw_value", ["Infinity", "-Infinity", "NaN", '"inf"', '"-inf"', '"NaN"']
+)
+@pytest.mark.parametrize(
+    "target_field", ["B", "L", "C", "S", "tau"]
+)
+def test_nonfinite_values_rejected_with_422(endpoint, raw_value, target_field):
+    if target_field == "B":
+        body = (
+            '{"id":"nf","name":"NF","mode":"imported",'
+            f'"nodes":[{{"id":"A","B":{raw_value}}},{{"id":"B","B":0.0}}],'
+            '"edges":[{"source":"A","target":"B","S":0.5,"tau":1.0}]}'
+        )
+    elif target_field == "L":
+        body = (
+            '{"id":"nf","name":"NF","mode":"imported",'
+            '"nodes":[{"id":"A","B":0.5},{"id":"B","B":0.0}],'
+            f'"edges":[{{"source":"A","target":"B","L":{raw_value},"C":100.0,"tau":1.0}}]}}'
+        )
+    elif target_field == "C":
+        body = (
+            '{"id":"nf","name":"NF","mode":"imported",'
+            '"nodes":[{"id":"A","B":0.5},{"id":"B","B":0.0}],'
+            f'"edges":[{{"source":"A","target":"B","L":50.0,"C":{raw_value},"tau":1.0}}]}}'
+        )
+    elif target_field == "S":
+        body = (
+            '{"id":"nf","name":"NF","mode":"imported",'
+            '"nodes":[{"id":"A","B":0.5},{"id":"B","B":0.0}],'
+            f'"edges":[{{"source":"A","target":"B","S":{raw_value},"tau":1.0}}]}}'
+        )
+    else:
+        body = (
+            '{"id":"nf","name":"NF","mode":"imported",'
+            '"nodes":[{"id":"A","B":0.5},{"id":"B","B":0.0}],'
+            f'"edges":[{{"source":"A","target":"B","S":0.5,"tau":{raw_value}}}]}}'
+        )
+
+    response = client.post(
+        endpoint,
+        content=body,
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "endpoint", ["/api/datasets/validate", "/api/evaluate"]
+)
+@pytest.mark.parametrize(
+    "edge_payload",
+    [
+        {"source": "A", "target": "B", "S": 0.5, "L": 50.0, "C": 100.0},
+        {"source": "A", "target": "B", "S": 0.5, "L": 50.0},
+        {"source": "A", "target": "B", "S": 0.5, "C": 100.0},
+    ],
+)
+def test_dual_s_and_lc_rejected_with_422(endpoint, edge_payload):
+    payload = {
+        "id": "dual-input",
+        "name": "Dual input",
+        "mode": "imported",
+        "nodes": [{"id": "A", "B": 0.5}, {"id": "B", "B": 0.0}],
+        "edges": [edge_payload],
+    }
+    response = client.post(endpoint, json=payload)
+    assert response.status_code == 422
+
+
+def test_service_layer_rejects_unvalidated_nonfinite_and_dual_inputs():
+    from app.models import DatasetMode, DatasetPayload, EdgeRecord, NodeRecord
+    from app.services.evaluation import evaluate_dataset, validate_dataset
+
+    dual_dataset = DatasetPayload.model_construct(
+        id="dual",
+        name="Dual",
+        mode=DatasetMode.IMPORTED,
+        nodes=[
+            NodeRecord.model_construct(id="A", B=0.5, outlet=False, label=None),
+            NodeRecord.model_construct(id="B", B=0.0, outlet=True, label=None),
+        ],
+        edges=[
+            EdgeRecord.model_construct(
+                source="A", target="B", L=50.0, C=100.0, S=0.5, tau=1.0
+            )
+        ],
+    )
+    with pytest.raises(ValueError, match="Ambiguous"):
+        validate_dataset(dual_dataset)
+    with pytest.raises(ValueError, match="Ambiguous"):
+        evaluate_dataset(dual_dataset)
+
+    inf_dataset = DatasetPayload.model_construct(
+        id="inf",
+        name="Inf",
+        mode=DatasetMode.IMPORTED,
+        nodes=[
+            NodeRecord.model_construct(id="A", B=0.5, outlet=False, label=None),
+            NodeRecord.model_construct(id="B", B=0.0, outlet=True, label=None),
+        ],
+        edges=[
+            EdgeRecord.model_construct(
+                source="A", target="B", L=float("inf"), C=100.0, S=None, tau=1.0
+            )
+        ],
+    )
+    with pytest.raises(ValueError, match="L"):
+        validate_dataset(inf_dataset)
+    with pytest.raises(ValueError, match="L"):
+        evaluate_dataset(inf_dataset)

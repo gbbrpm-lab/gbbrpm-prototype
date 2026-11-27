@@ -22,10 +22,32 @@ def _graph(dataset: DatasetPayload) -> nx.DiGraph:
     return graph
 
 
+def _require_finite_range(
+    value: float,
+    name: str,
+    *,
+    lower: float | None = None,
+    upper: float | None = None,
+    strict_lower: bool = False,
+) -> None:
+    if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value):
+        raise ValueError(f"{name} must be a finite number")
+    if lower is not None:
+        if strict_lower and value <= lower:
+            raise ValueError(f"{name} must be > {lower:g}")
+        if not strict_lower and value < lower:
+            raise ValueError(f"{name} must be >= {lower:g}")
+    if upper is not None and value > upper:
+        raise ValueError(f"{name} must be <= {upper:g}")
+
+
 def validate_dataset(dataset: DatasetPayload) -> ValidationResponse:
     node_ids = [node.id for node in dataset.nodes]
     if len(node_ids) != len(set(node_ids)):
         raise ValueError("Node identifiers must be unique")
+
+    for node in dataset.nodes:
+        _require_finite_range(node.B, "B", lower=0.0, upper=1.0)
 
     node_set = set(node_ids)
     pairs: set[tuple[str, str]] = set()
@@ -38,6 +60,25 @@ def validate_dataset(dataset: DatasetPayload) -> ValidationResponse:
         if pair in pairs:
             raise ValueError(f"Duplicate directed edge: {edge.source}->{edge.target}")
         pairs.add(pair)
+
+        _require_finite_range(edge.tau, "tau", lower=0.0, upper=1.0)
+        has_s = edge.S is not None
+        has_l = edge.L is not None
+        has_c = edge.C is not None
+        if has_s and (has_l or has_c):
+            raise ValueError(
+                "Ambiguous edge susceptibility input: provide either explicit S "
+                "or primitive L and C, not both"
+            )
+        if has_l != has_c:
+            raise ValueError("L and C must be provided together")
+        if has_s:
+            _require_finite_range(edge.S, "S", lower=0.0, upper=1.0)
+        elif has_l and has_c:
+            _require_finite_range(edge.L, "L", lower=0.0)
+            _require_finite_range(edge.C, "C", lower=0.0, strict_lower=True)
+        else:
+            raise ValueError("Provide S or both L and C")
 
     graph = _graph(dataset)
     if not nx.is_directed_acyclic_graph(graph):
@@ -69,9 +110,11 @@ def evaluate_dataset(dataset: DatasetPayload) -> EvaluationResponse:
             "target": edge.target,
             "tau": edge.tau,
         }
-        if edge.L is not None and edge.C is not None:
-            row.update({"L": edge.L, "C": edge.C})
-        else:
+        if edge.L is not None:
+            row["L"] = edge.L
+        if edge.C is not None:
+            row["C"] = edge.C
+        if edge.S is not None:
             row["S"] = edge.S
         edge_rows.append(row)
 
